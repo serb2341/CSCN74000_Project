@@ -12,10 +12,11 @@
 
 int main(int argc, char* argv[])
 {
+    int result = 0;
     if (argc < 2)
     {
         std::cout << "Usage: pilot_client <FlightID>\n";
-        return 1;
+        result = 1;
     }
 
     int flightId = std::stoi(argv[1]); //***US - 10
@@ -24,7 +25,7 @@ int main(int argc, char* argv[])
     WSADATA wsaData;
     if ((WSAStartup(MAKEWORD(2, 2), &wsaData)) != 0) //Starts Windows Sockets DLL
     {
-        return 0;
+        result = 0;
     }
 
     //initializes socket. SOCK_STREAM: TCP
@@ -32,8 +33,8 @@ int main(int argc, char* argv[])
     ClientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); //creates a TCP socket called ClientSocket
     if (ClientSocket == INVALID_SOCKET)
     {
-        WSACleanup(); //Ends Windows Sockets DLLs
-        return 0;
+        (void)WSACleanup(); //Ends Windows Sockets DLLs
+        result = 0;
     }
 
     //Connect socket to specified server
@@ -43,9 +44,9 @@ int main(int argc, char* argv[])
     SvrAddr.sin_addr.s_addr = inet_addr("127.0.0.1");	//IP address
     if ((connect(ClientSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr))) == SOCKET_ERROR)  //binds ClientSocket to port 27000
     {
-        closesocket(ClientSocket); //Closes ClientSocket
-        WSACleanup();   //Ends Windows Sockets DLLs
-        return 0;
+        (void)closesocket(ClientSocket); //Closes ClientSocket
+        (void)WSACleanup();   //Ends Windows Sockets DLLs
+        result = 0;
     }
 
     Packet newPkt; //Packet object is created
@@ -53,7 +54,7 @@ int main(int argc, char* argv[])
     //Sends the FlightID in the header to the Server  *** US-10
     newPkt.SetFlightID(flightId); //populates the newPkt object with the data 
     newPkt.SetMessageType(0); //populates the newPkt object with the data
-    newPkt.SetTimeStamp((unsigned char)time(nullptr));
+    newPkt.SetTimeStamp(static_cast<unsigned char>(time(nullptr)));
     unsigned int Size = 0;
     std::string firstMessage = "Connected";
     newPkt.SetData(firstMessage.c_str(), firstMessage.size());
@@ -65,7 +66,7 @@ int main(int argc, char* argv[])
 
     // Receives information about active ground control *** US-5
     char RxBuffer[512] = {};				//Buffer for receiving data
-    if (recv(ClientSocket, RxBuffer, sizeof(RxBuffer), 0) == SOCKET_ERROR) //Receives to the RxBuffer
+    if (recv(ClientSocket, &RxBuffer[0], sizeof(RxBuffer), 0) == SOCKET_ERROR) //Receives to the RxBuffer
     {
         std::cout << "Error: No data recieved." << std::endl; //Error checking, no data was sent
     }
@@ -74,8 +75,8 @@ int main(int argc, char* argv[])
 
     RxPkt.DisplayInFlightSide(std::cout);
 
-
-    while (true)
+    bool loop = true;
+    while (loop)
     {
         std::cout << "\nSelect option:\n";
         std::cout << "1) Sent Message\n";
@@ -85,18 +86,18 @@ int main(int argc, char* argv[])
 
         int choice;
         std::cin >> choice;
-        std::cin.ignore();
+        (void)std::cin.ignore();
 
         if (choice == 1) // Send one regular message at a time ***US-2
         {
             std::string msg;
             std::cout << "Enter message: ";
-            std::getline(std::cin, msg); // inflight client enters message
+            (void)std::getline(std::cin, msg); // inflight client enters message
             
             newPkt.SetFlightID(flightId);
             newPkt.SetMessageType(0);
-            newPkt.SetTimeStamp((unsigned char)time(nullptr));
-            newPkt.SetData((char*)msg.c_str(), msg.size());
+            newPkt.SetTimeStamp(static_cast<unsigned char>(time(nullptr)));
+            newPkt.SetData(msg.c_str(), msg.size());
             Size = 0;
             Tx = newPkt.SerializeData(Size);
 
@@ -118,9 +119,9 @@ int main(int argc, char* argv[])
 
 
         char RxBuffer[512] = {};				//Buffer for receiving data
-        if (recv(ClientSocket, RxBuffer, sizeof(RxBuffer),0) < 0) //Receives to the RxBuffer
+        if (recv(ClientSocket, &RxBuffer[0], sizeof(RxBuffer), 0) < 0) //Receives to the RxBuffer
         {
-            break;
+            loop = false;
         }
 
         Packet RxPkt(RxBuffer); //uses the overloaded constructor to fill the Packet object called RxPkt
@@ -129,8 +130,8 @@ int main(int argc, char* argv[])
     }
 
 
-    closesocket(ClientSocket);
-    WSACleanup();
+    (void)closesocket(ClientSocket);
+    (void)WSACleanup();
 
-    return 0;
+    return result;
 }

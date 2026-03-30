@@ -3,11 +3,11 @@
 #include <iostream>
 #include <fstream>
 
-const unsigned int CRCvalue = 0xFF00FF00U;
-const unsigned int MAX_DATA_SIZE = 256;
-
 class Packet
 {
+private:
+	static const unsigned int CRCvalue = 0xFF00FF00U;
+	static const unsigned int MAX_DATA_SIZE = 256;
 	struct Header
 	{
 		unsigned int FlightID;				//Source ID
@@ -22,9 +22,15 @@ class Packet
 
 public:
 	Packet() { 
-		memset(&Head, 0, sizeof(Head));
-		memset(Data, 0, sizeof(Data));
-		memset(TxBuffer, 0, sizeof(TxBuffer));
+		(void)memset(&Head, 0, sizeof(Head));
+		for (unsigned int i = 0U; i < MAX_DATA_SIZE; ++i) // prevent misra error "'Data' array should not decay to a pointer."
+		{
+			Data[i] = '\0';
+		}
+		for (unsigned int i = 0U; i < sizeof(TxBuffer); ++i) // prevent misra error "'TxBuffer' array should not decay to a pointer."
+		{
+			TxBuffer[i] = '\0';
+		}
 	} //Default Constructor - Safe State
 	
 	void SetFlightID(unsigned int value) { Head.FlightID = value; };		//Sets the line number within the object
@@ -45,75 +51,94 @@ public:
 
 	Packet(const char* src) //Overloaded constructor that takes character pointer src and uses it to populate the packet
 	{
-		memset(&Head, 0, sizeof(Head));
-		memset(Data, 0, sizeof(Data));
-		
-		if (src == nullptr)
+		if (src != nullptr)
 		{
-			return;
+			(void)memset(&Head, 0, sizeof(Head));
+			for (unsigned int i = 0U; i < MAX_DATA_SIZE; ++i) // prevent misra error "'Data' array should not decay to a pointer."
+			{
+				Data[i] = '\0';
+			}
+
+			(void)memcpy(&Head, src, sizeof(Head)); //copies the first two bytes of the src character array to the Head of the packet
+
+			if (Head.Length > MAX_DATA_SIZE)
+			{
+				Head.Length = MAX_DATA_SIZE;
+			}
+
+			for (unsigned int i = 0U; i < Head.Length; ++i) // copies data 
+			{
+				Data[i] = src[sizeof(Head) + i];
+			}
+			
+			Data[Head.Length] = '\0'; //adds termination character to end of the Data array
+
+			unsigned int offset = sizeof(Head) + Head.Length; // prevents "Array indexing should be the only form of pointer arithmetic and it should be applied only to objects defined as an array type."
+
+			unsigned char* crcBytes = reinterpret_cast<unsigned char*>(&CRC); //misra safe casting
+
+			for (unsigned int i = 0U; i < sizeof(unsigned int); ++i) //copies crc
+			{
+				crcBytes[i] = src[offset + i];
+			}
 		}
-		
-		memcpy(&Head, src, sizeof(Head)); //copies the first two bytes of the src character array to the Head of the packet
-
-		if (Head.Length > MAX_DATA_SIZE)
-		{
-			Head.Length = MAX_DATA_SIZE; 
-		}
-
-		memcpy(Data, src + sizeof(Head), Head.Length); //copies memory from the src o the Data variable
-		Data[Head.Length] = '\0'; //adds termination character to end of the Data array
-
-		memcpy(&CRC, src + sizeof(Head) + Head.Length, sizeof(unsigned int));  //copies memory from the src to the CRC variable
 	}
 
-	void SetData(const char* srcData, unsigned int Size) //parameters are a char array and a length of the char array
+	void SetData(const char srcData[], unsigned int Size) //parameters are a char array and a length of the char array
 	{
-		if (srcData == nullptr) //checks if data is empty
+		if (srcData != nullptr) //checks if data is empty
 		{
-			return;
+			if (Size > MAX_DATA_SIZE) //ensures data is not too long
+			{
+				Size = MAX_DATA_SIZE;
+			}
+			
+			for (unsigned int i = 0U; i < Size; ++i) // copies data
+			{
+				Data[i] = srcData[i];
+			}
+			Data[Size] = '\0'; //adds termination character to end of the Data array
+
+			Head.Length = Size; //sets the Head.Length to the correct size
+
+			CRC = CalculateCRC(); //calculates the CRC for the data
 		}
-
-		if (Size > MAX_DATA_SIZE) //ensures data is not too long
-		{
-			Size = MAX_DATA_SIZE;
-		}
-		
-		memcpy(Data, srcData, Size);
-		Data[Size] = '\0'; //adds termination character to end of the Data array
-
-		Head.Length = Size; //sets the Head.Length to the correct size
-
-		CRC = CalculateCRC(); //calculates the CRC for the data
 	};
 
 	char* SerializeData(unsigned int& TotalSize) //Puts all of the data in one spot sequenitally
 	{
 		TotalSize = sizeof(Header) + Head.Length + sizeof(unsigned int); //calcualtes the amount of space needed to store all of the info in the Packet
-		memcpy(TxBuffer, &Head, sizeof(Head)); //copies the memory of the Head into the start of the TxBuffer
-		memcpy(TxBuffer + sizeof(Head), Data, Head.Length); //copies the memory of the Data into the TxBuffer after the Head
-		memcpy(TxBuffer + sizeof(Head) + Head.Length, &CRC, sizeof(unsigned int)); //copies the memory of the CRC to the TxBuffer after the Data
+		(void)memcpy(TxBuffer, &Head, sizeof(Head)); //copies the memory of the Head into the start of the TxBuffer
+		for (unsigned int i = 0U; i < Head.Length; ++i) //copies the memory of the Data into the TxBuffer after the Head
+		{
+			TxBuffer[sizeof(Head) + i] = Data[i];
+		} 
+		unsigned int offset = sizeof(Head) + Head.Length; // prevents misra array and decay rules
+		unsigned char* crcBytes = reinterpret_cast<unsigned char*>(&CRC);
+		for (unsigned int i = 0U; i < sizeof(unsigned int); ++i) //copies the memory of the CRC to the TxBuffer after the Data
+		{
+			TxBuffer[offset + i] = crcBytes[i];
+		} 
 
 		return TxBuffer; //returns the character array buffer to be sent to the Server
 	};
 
 	void DeserializeData(const char* rxBuffer) //Extracts data
 	{
-		if (rxBuffer == nullptr) //checks if data is empty
+		if (rxBuffer != nullptr) //checks if data is empty
 		{
-			return;
+			(void)memcpy(&Head, rxBuffer, sizeof(Head));
+
+			if (Head.Length > MAX_DATA_SIZE) //ensures data is not too long
+			{
+				Head.Length = MAX_DATA_SIZE;
+			}
+
+			(void)memcpy(Data, rxBuffer + sizeof(Head), Head.Length);
+			Data[Head.Length] = '\0';
+
+			(void)memcpy(&CRC, rxBuffer + sizeof(Head) + Head.Length, sizeof(unsigned int));
 		}
-
-		memcpy(&Head, rxBuffer, sizeof(Head));
-
-		if (Head.Length > MAX_DATA_SIZE) //ensures data is not too long
-		{
-			Head.Length = MAX_DATA_SIZE;
-		}
-
-		memcpy(Data, rxBuffer + sizeof(Head), Head.Length);
-		Data[Head.Length] = '\0';
-
-		memcpy(&CRC, rxBuffer + sizeof(Head) + Head.Length, sizeof(unsigned int));
 	};
 
 	unsigned int CalculateCRC() //cyclic redundancy check should be calculated after the data is placed in the packet
