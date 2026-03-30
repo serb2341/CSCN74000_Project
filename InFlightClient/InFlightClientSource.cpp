@@ -51,22 +51,20 @@ int main(int argc, char* argv[])
     Packet newPkt; //Packet object is created
     
     //Sends the FlightID in the header to the Server  *** US-10
-    newPkt.SetFlightID(flightId); //populates the newPkt object with the data read from the file
-    newPkt.SetMessageType(2); //populates the newPkt object with the data read from the file
+    newPkt.SetFlightID(flightId); //populates the newPkt object with the data 
+    newPkt.SetMessageType(0); //populates the newPkt object with the data
     newPkt.SetTimeStamp((unsigned char)time(nullptr));
-    int Size = 0;
+    unsigned int Size = 0;
     std::string firstMessage = "Connected";
-    newPkt.SetData((char*)firstMessage.c_str(), firstMessage.size());
+    newPkt.SetData(firstMessage.c_str(), firstMessage.size());
     char* Tx = newPkt.SerializeData(Size);
     if (send(ClientSocket, Tx, Size, 0) == SOCKET_ERROR)
     {
         std::cout << "Error sending connection packet\n";
     }
-    delete[] Tx;
-
 
     // Receives information about active ground control *** US-5
-    char RxBuffer[128] = {};				//Buffer for receiving data
+    char RxBuffer[512] = {};				//Buffer for receiving data
     if (recv(ClientSocket, RxBuffer, sizeof(RxBuffer), 0) == SOCKET_ERROR) //Receives to the RxBuffer
     {
         std::cout << "Error: No data recieved." << std::endl; //Error checking, no data was sent
@@ -107,8 +105,6 @@ int main(int argc, char* argv[])
                 std::cout << "Error: No data sent." << std::endl; //Error checking, no data was sent
             
             }
-            delete[] Tx;
-
         }
         else if (choice == 2)
         {
@@ -121,7 +117,7 @@ int main(int argc, char* argv[])
         }
 
 
-        char RxBuffer[128] = {};				//Buffer for receiving data
+        char RxBuffer[512] = {};				//Buffer for receiving data
         if (recv(ClientSocket, RxBuffer, sizeof(RxBuffer),0) < 0) //Receives to the RxBuffer
         {
             break;

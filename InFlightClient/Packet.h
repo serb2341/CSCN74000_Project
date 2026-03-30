@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 
-const unsigned int CRCvalue = 0xFF00FF00;
+const unsigned int CRCvalue = 0xFF00FF00U;
 const unsigned int MAX_DATA_SIZE = 256;
 
 class Packet
@@ -79,7 +79,7 @@ public:
 		}
 		
 		memcpy(Data, srcData, Size);
-		Data[Head.Length] = '\0'; //adds termination character to end of the Data array
+		Data[Size] = '\0'; //adds termination character to end of the Data array
 
 		Head.Length = Size; //sets the Head.Length to the correct size
 
@@ -96,7 +96,7 @@ public:
 		return TxBuffer; //returns the character array buffer to be sent to the Server
 	};
 
-	char* DeserializeData(const char* rxBuffer) //Extracts data
+	void DeserializeData(const char* rxBuffer) //Extracts data
 	{
 		if (rxBuffer == nullptr) //checks if data is empty
 		{
