@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    int flightId = std::stoi(argv[1]);
+    int flightId = std::stoi(argv[1]); //***US - 10
 
     //starts Winsock DLLs
     WSADATA wsaData;
@@ -49,7 +49,8 @@ int main(int argc, char* argv[])
     }
 
     Packet newPkt; //Packet object is created
-
+    
+    //Sends the FlightID in the header to the Server  *** US-10
     newPkt.SetFlightID(flightId); //populates the newPkt object with the data read from the file
     newPkt.SetMessageType(2); //populates the newPkt object with the data read from the file
     newPkt.SetTimeStamp((unsigned char)time(nullptr));
@@ -64,6 +65,18 @@ int main(int argc, char* argv[])
     delete[] Tx;
 
 
+    // Receives information about active ground control *** US-5
+    char RxBuffer[128] = {};				//Buffer for receiving data
+    if (recv(ClientSocket, RxBuffer, sizeof(RxBuffer), 0) == SOCKET_ERROR) //Receives to the RxBuffer
+    {
+        std::cout << "Error: No data recieved." << std::endl; //Error checking, no data was sent
+    }
+
+    Packet RxPkt(RxBuffer); //uses the overloaded constructor to fill the Packet object called RxPkt
+
+    RxPkt.DisplayInFlightSide(std::cout);
+
+
     while (true)
     {
         std::cout << "\nSelect option:\n";
@@ -76,7 +89,7 @@ int main(int argc, char* argv[])
         std::cin >> choice;
         std::cin.ignore();
 
-        if (choice == 1)
+        if (choice == 1) // Send one regular message at a time ***US-2
         {
             std::string msg;
             std::cout << "Enter message: ";
@@ -89,7 +102,7 @@ int main(int argc, char* argv[])
             Size = 0;
             Tx = newPkt.SerializeData(Size);
 
-            if (send(ClientSocket, Tx, Size, 0) == SOCKET_ERROR) //sends message to the Server
+            if (send(ClientSocket, Tx, Size, 0) == SOCKET_ERROR) //sends message to the Server 
             {
                 std::cout << "Error: No data sent." << std::endl; //Error checking, no data was sent
             
