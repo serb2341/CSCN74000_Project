@@ -18,9 +18,18 @@
     <ClCompile Include="InFlightClientSource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Server\CRC32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Packet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CRC32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VerificationPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

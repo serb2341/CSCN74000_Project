@@ -127,10 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Server\CRC32.cpp" />
     <ClCompile Include="InFlightClientSource.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CRC32.h" />
     <ClInclude Include="Packet.h" />
+    <ClInclude Include="VerificationPacket.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
