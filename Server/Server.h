@@ -10,6 +10,7 @@
 #include <atomic>
 #include <iostream>
 #include <string>
+#include <cstdint>
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -28,16 +29,36 @@ private:
 
 	std::atomic<bool> isRunning;		// Set to false for graceful shutdown.
 
+	std::string sharedSecret;			// Shared Secret key.
+
+	// Reads shared secret from a key=value .txt config file.
+	// Returns true if the SECRET key is found and loaded.
+	bool LoadConfig(const std::string& configPath);
+
 	// Initializes the WinSock Library (WSAStartup).
 	bool InitializeWinsock();
 
 	// Creates, binds, and begins listening on listeningSocket.
 	bool CreateListeningSocket();
 
+	// Executes the full 4-packet mutual verification handshake with the client.
+	// Returns true if the handshake succeeds, false if it fails at any step.
+	// On failure the caller should close the socket and not start a relay thread.
+	bool PerformHandshake(SOCKET clientSocket, const std::string& clientName);
+
+	// Computes the expected signature: CRC-32 over (sharedSecret bytes + randomNumber bytes).
+	uint32_t ComputeSignature(uint32_t randomNumber) const;
+
 	// Relay loop executed on each client thread.
 	// Receives raw bytes from sourceSocket and forwards them to destinationSocket.
 	// clientName is used only for console log messages.
 	void RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std::string& clientName);
+
+	// Validates packet structure and CRC-32 integrity.
+	// buffer    - pointer to the full assembled packet (Header + Body + CRC tail)
+	// totalSize - total byte count of the assembled packet
+	// Returns true if both structural and CRC checks pass.
+	bool ValidatePacket(const char* buffer, unsigned int totalSize) const;
 
 	// Safely closes a SOCKET handle and resets it to INVALID_SOCKET.
 	void CloseSocket(SOCKET* sock);
