@@ -16,7 +16,27 @@
 
 #define SERVER_PORT 54000					// This is the default port that the server listens on.
 
-//#define RECV_BUFFER_SIZE 500				// This is the size of the buffer where the incoming/outgoing message will be stored.
+// ============================================================
+//  Server-wide state — sequential lifecycle, one at a time.
+// ============================================================
+enum class ServerState
+{
+	INITIALIZING,	// Default startup state.
+	LISTENING,      // Server is bound and waiting for client connections.
+	VERIFICATION,   // A client has connected. 4-packet mutual handshake is in progress.
+	AUTHENTICATED,  // Handshake passed. Client is verified, about to enter relay.
+	DISCONNECTING   // A client disconnected or shutdown was triggered. Cleanup in progress.
+};
+
+// ============================================================
+//  Per-client state - runs concurrently inside each relay thread.
+// ============================================================
+enum class ClientState
+{
+	RECEIVING,      // Thread is blocked on recv(), waiting for incoming data.
+	PROCESSING,     // Packet received. Running structural + CRC-32 validation.
+	TRANSMITTING    // Packet validated. Calling send() to forward to destination.
+};
 
 class Server {
 private:
@@ -28,6 +48,7 @@ private:
 	std::thread airplaneThread;
 
 	std::atomic<bool> isRunning;		// Set to false for graceful shutdown.
+	std::atomic<ServerState> serverState;
 
 	std::string sharedSecret;			// Shared Secret key.
 
@@ -62,6 +83,13 @@ private:
 
 	// Safely closes a SOCKET handle and resets it to INVALID_SOCKET.
 	void CloseSocket(SOCKET* sock);
+
+	// Transitions the server-wide state and logs the change to the console.
+	void SetServerState(ServerState newState);
+
+	// Transitions a per-client state and logs the change to the console.
+	// Static because it operates on a local variable, not a member.
+	static void SetClientState(ClientState& current, ClientState next, const std::string& clientName);
 
 public:
 	Server();

@@ -14,6 +14,8 @@ Server::Server() {
 	this->airplaneSocket = INVALID_SOCKET;
 
 	this->isRunning = false;
+
+	this->serverState = ServerState::INITIALIZING;
 };
 
 Server::~Server() {
@@ -259,6 +261,9 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std::string& clientName) {
 	std::cout << "[" << clientName << "] Relay thread started." << std::endl;
 
+	// Each relay thread owns its own ClientState — no shared state collision.
+	ClientState clientState = ClientState::RECEIVING;
+
 	while (this->isRunning) {
 		// First we start with only receiving the Header of the data packet.
 		char headerBuffer[sizeof(PacketHeader)];
@@ -323,6 +328,8 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		};
 
 
+		Server::SetClientState(clientState, ClientState::PROCESSING, clientName);
+
 		// Validating the structure and CRC-32 before forwarding.
 		if (!this->ValidatePacket((const char*)recvBuffer, totalPktSize))
 		{
@@ -333,10 +340,14 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 			delete[] recvBuffer;
 			recvBuffer = nullptr;
 
+			// Back to RECEIVING — relay stays alive, just this packet is dropped.
+			Server::SetClientState(clientState, ClientState::RECEIVING, clientName);
+
 			continue; // Drop this packet — do NOT forward it, keep the relay alive
 		};
 
 
+		Server::SetClientState(clientState, ClientState::TRANSMITTING, clientName);
 
 		// From here on, we are forwarding the data packet to the destination client.
 		int bytesSent = send(destinationSocket, recvBuffer, totalPktSize, 0);
@@ -359,9 +370,13 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 
 		delete[] recvBuffer;
 		recvBuffer = nullptr;
+
+		Server::SetClientState(clientState, ClientState::RECEIVING, clientName);
 	};
 
 	std::cout << "[" << clientName << "] Relay thread exiting." << std::endl;
+
+	this->SetServerState(ServerState::DISCONNECTING);
 
 	this->isRunning = false;
 
@@ -452,6 +467,9 @@ bool Server::Initialize() {
 		return false;
 	};
 
+	// Transition: INITIALIZING --> LISTENING
+	this->SetServerState(ServerState::LISTENING);
+
 	this->isRunning = true;
 
 	std::cout << "[Server] Initialized. Listening on port " << SERVER_PORT << std::endl;
@@ -475,21 +493,35 @@ void Server::AcceptClients() {
 
 	std::cout << "[Server] Ground Control connected. Performing handshake..." << std::endl;
 
+
+	// Transition: LISTENING --> VERIFICATION
+	this->SetServerState(ServerState::VERIFICATION);
+
 	if (!this->PerformHandshake(this->groundControlSocket, "Ground Control")) {
 		std::cerr << "[Server] Ground Control failed handshake. Dropping connection." << std::endl;
 
 		this->CloseSocket(&(this->groundControlSocket));
+
+		// Transition: VERIFICATION --> DISCONNECTING
+		this->SetServerState(ServerState::DISCONNECTING);
 
 		this->Shutdown();
 
 		return;
 	};
 
+
+	// Transition: VERIFICATION --> AUTHENTICATED
+	this->SetServerState(ServerState::AUTHENTICATED);
+
 	std::cout << "[Server] Ground Control handshake successful." << std::endl;
 
 	
 	// 2nd connection - In-flight Airplane.
 	std::cout << "[Server] Waiting for Airplane to connect..." << std::endl;
+
+	// Transition: AUTHENTICATED --> LISTENING (waiting for 2nd client)
+	this->SetServerState(ServerState::LISTENING);
 
 	this->airplaneSocket = accept(this->listeningSocket, nullptr, nullptr);
 
@@ -503,15 +535,26 @@ void Server::AcceptClients() {
 
 	std::cout << "[Server] Airplane connected. Performing handshake..." << std::endl;
 
+
+	// Transition: LISTENING --> VERIFICATION
+	this->SetServerState(ServerState::VERIFICATION);
+
+
 	if (!this->PerformHandshake(this->airplaneSocket, "Airplane")) {
 		std::cerr << "[Server] Airplane failed handshake. Dropping connection." << std::endl;
 
 		this->CloseSocket(&(this->airplaneSocket));
 
+		// Transition: VERIFICATION --> DISCONNECTING
+		this->SetServerState(ServerState::DISCONNECTING);
+
 		this->Shutdown();
 
 		return;
 	};
+
+	// Transition: VERIFICATION --> AUTHENTICATED
+	this->SetServerState(ServerState::AUTHENTICATED);
 
 	std::cout << "[Server] Airplane handshake successful." << std::endl;
 	std::cout << "[Server] Both clients connected. Starting relay threads." << std::endl;
@@ -560,4 +603,48 @@ void Server::Shutdown() {
 	WSACleanup();
 
 	std::cout << "[Server] Shutdown complete." << std::endl;
+};
+
+// Maps ServerState enum to a readable string for console output.
+static const char* ServerStateToString(ServerState state) {
+	switch (state) {
+	case ServerState::INITIALIZING: return "INITIALIZING";
+	case ServerState::LISTENING:     return "LISTENING";
+	case ServerState::VERIFICATION:  return "VERIFICATION";
+	case ServerState::AUTHENTICATED: return "AUTHENTICATED";
+	case ServerState::DISCONNECTING: return "DISCONNECTING";
+	default:                         return "UNKNOWN";
+	};
+};
+
+void Server::SetServerState(ServerState newState) {
+	ServerState oldState = this->serverState.load();
+	this->serverState.store(newState);
+
+	std::cout << "[Server] State: "
+		<< ServerStateToString(oldState)
+		<< " --> "
+		<< ServerStateToString(newState)
+		<< std::endl;
+};
+
+// Maps ClientState enum to a readable string for console output.
+static const char* ClientStateToString(ClientState state) {
+	switch (state)
+	{
+	case ClientState::RECEIVING:    return "RECEIVING";
+	case ClientState::PROCESSING:   return "PROCESSING";
+	case ClientState::TRANSMITTING: return "TRANSMITTING";
+	default:                        return "UNKNOWN";
+	};
+};
+
+void Server::SetClientState(ClientState& current, ClientState next, const std::string& clientName) {
+	std::cout << "[" << clientName << "] State: "
+		<< ClientStateToString(current)
+		<< " --> "
+		<< ClientStateToString(next)
+		<< std::endl;
+
+	current = next;
 };
