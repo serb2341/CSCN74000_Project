@@ -5,8 +5,8 @@
 struct PacketHeader {
 	unsigned int FlightID;
 	unsigned int MessageType;
-	unsigned char TimeStamp;
 	unsigned int Length;
+	unsigned char TimeStamp;
 };
 
 #endif // PACKET_HEADER

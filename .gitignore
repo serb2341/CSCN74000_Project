@@ -361,3 +361,12 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Ignore server config file
+Server/server_config.txt
+
+# Ignore GroundControlClient config file
+GroundControlClient/server_config.txt
+
+# Ignore InFlightClient config file
+InFlightClient/server_config.txt

@@ -13,12 +13,21 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Config Files">
+      <UniqueIdentifier>{be7a05fd-6ebb-4a71-bc88-6934835a427f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Server.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PacketHeader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CRC32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VerificationPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -29,5 +38,13 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CRC32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="server_config.txt">
+      <Filter>Config Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>
