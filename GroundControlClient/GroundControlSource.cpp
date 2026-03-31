@@ -11,21 +11,14 @@
 #include <ctime>
 #include "Packet.h"
 #include "VerificationPacket.h"
+#include "Handshake.h"
 #include "CRC32.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
 
 
-// Helper for Handshake Signature - Must match Server logic
-uint32_t ComputeSignature(uint32_t random, const std::string& secret) {
-    std::string payload = secret;
-    payload.append((const char*)(&random), sizeof(uint32_t));
-    return CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
-}
-
 int main() {
-    const std::string SHARED_SECRET = "secret"; // WARNING: This is a dummy value for now. Must match server_config.txt
 
     //Starts Windows Sockets DLL
     WSADATA wsaData;
@@ -41,6 +34,14 @@ int main() {
     serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); //IP address
 
 
+    // Get the secret from the config file
+    std::string secret = Handshake::LoadSecret("server_config.txt");
+
+    if (secret.empty()) {
+        std::cerr << "[Server] SECRET key not found in config file." << std::endl;
+        return 1;
+    }
+
     //initializes socket. SOCK_STREAM: TCP
     if (connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
         std::cout << "Connection failed.\n";
@@ -50,34 +51,13 @@ int main() {
     }
 
 
-
-	// ***** 4-Step Verification Handshake *****
-    
-    // --- STEP 1: Send Challenge 
-    ChallengePacket gcChallenge;
-    gcChallenge.Type = static_cast<uint32_t>(VerificationPacketType::CHALLENGE);
-    gcChallenge.Random = static_cast<uint32_t>(rand());
-    gcChallenge.CRC32 = CRC32::Calculate((char*)&gcChallenge, 8);
-    send(clientSocket, (char*)&gcChallenge, sizeof(ChallengePacket), 0);
-
-    // --- STEP 2: Receive Response ---
-    ResponsePacket svrResponse;
-    recv(clientSocket, (char*)&svrResponse, sizeof(ResponsePacket), MSG_WAITALL);  // MSG_WAITALL will ensure the full packet is received
-    if (svrResponse.Signature != ComputeSignature(gcChallenge.Random, SHARED_SECRET)) {
-        std::cout << "Server authentication failed.\n";
+    // Pass the secret into the handshake logic
+    if (!Handshake::Execute(clientSocket, secret)) {
+        std::cerr << "[Error] Handshake failed. Connection closed." << std::endl;
+        closesocket(clientSocket);
+        WSACleanup();
         return 1;
     }
-
-    // --- STEP 3: Receive Server Challenge ---
-    ChallengePacket svrChallenge;
-    recv(clientSocket, (char*)&svrChallenge, sizeof(ChallengePacket), MSG_WAITALL);
-
-    // --- STEP 4: Send Response ---
-    ResponsePacket gcResponse;
-    gcResponse.Type = static_cast<uint32_t>(VerificationPacketType::RESPONSE);
-    gcResponse.Signature = ComputeSignature(svrChallenge.Random, SHARED_SECRET);
-    gcResponse.CRC32 = CRC32::Calculate((char*)&gcResponse, 8);
-    send(clientSocket, (char*)&gcResponse, sizeof(ResponsePacket), 0);
 
     std::cout << "Handshake Complete. Waiting for Flight Client...\n";
 
