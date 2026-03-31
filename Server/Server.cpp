@@ -429,6 +429,15 @@ void Server::CloseSocket(SOCKET* socketPtr) {
 };
 
 bool Server::Initialize() {
+	// Seed random number generator for challenge generation.
+	srand(static_cast<unsigned int>(time(nullptr)));
+
+	if (!this->LoadConfig("server_config.txt")) {
+		std::cerr << "[Server] Failed to load config. Ensure server_config.txt exists with SECRET=<value>." << std::endl;
+
+		return false;
+	};
+
 	if (!this->InitializeWinsock()) {
 		std::cerr << "[Server] Failed to initialize Winsock." << std::endl;
 
@@ -464,7 +473,19 @@ void Server::AcceptClients() {
 		return;
 	};
 
-	std::cout << "[Server] Ground Control connected." << std::endl;
+	std::cout << "[Server] Ground Control connected. Performing handshake..." << std::endl;
+
+	if (!this->PerformHandshake(this->groundControlSocket, "Ground Control")) {
+		std::cerr << "[Server] Ground Control failed handshake. Dropping connection." << std::endl;
+
+		this->CloseSocket(&(this->groundControlSocket));
+
+		this->Shutdown();
+
+		return;
+	};
+
+	std::cout << "[Server] Ground Control handshake successful." << std::endl;
 
 	
 	// 2nd connection - In-flight Airplane.
@@ -480,7 +501,19 @@ void Server::AcceptClients() {
 		return;
 	};
 
-	std::cout << "[Server] In-flight Airplane connected." << std::endl;
+	std::cout << "[Server] Airplane connected. Performing handshake..." << std::endl;
+
+	if (!this->PerformHandshake(this->airplaneSocket, "Airplane")) {
+		std::cerr << "[Server] Airplane failed handshake. Dropping connection." << std::endl;
+
+		this->CloseSocket(&(this->airplaneSocket));
+
+		this->Shutdown();
+
+		return;
+	};
+
+	std::cout << "[Server] Airplane handshake successful." << std::endl;
 	std::cout << "[Server] Both clients connected. Starting relay threads." << std::endl;
 
 	// Closing the listening socket because no more connections are needed.
