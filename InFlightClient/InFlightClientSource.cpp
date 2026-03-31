@@ -328,6 +328,7 @@ void InFlightClient::sendMessage(int messageType, std::string message) {
 	{
 		std::cout << "Error sending connection packet\n";
 	}
+	logger.Log(message.c_str());
 }
 
 void InFlightClient::reciecveMessage()
@@ -343,6 +344,7 @@ void InFlightClient::reciecveMessage()
 		std::cout << "[Warning] Corrupted packet recieved!\n";
 	}
 	rxPkt.DisplayInFlightSide(std::cout);
+	logger.Log(rxPkt.GetData());
 }
 
 void InFlightClient::Run() {
@@ -371,11 +373,32 @@ void InFlightClient::Run() {
 			std::cout << "Enter message: ";
 			(void)std::getline(std::cin, msg); // inflight client enters message
 
-			sendMessage(0, "Connected");
+			sendMessage(0, msg);
 		}
 		else if (choice == 2)
 		{
-			// Will be handled in Sprint 2
+			std::ifstream file("telemetry.txt");
+
+			if (!file)
+			{
+				std::cout << "Telemetry file not found.\n";
+				continue;
+			}
+
+			std::string line;
+
+			std::cout << "Sending telemetry...\n";
+
+			while (std::getline(file, line))
+			{
+				std::string packet = "TELEMETRY|" + line;
+				sendMessage(1, packet.c_str());
+				
+				Sleep(10); // small delay to prevent packet flooding
+			}
+
+			std::string endPacket = "TELEMETRY_END";
+			sendMessage(1, endPacket.c_str());
 		}
 		else
 		{

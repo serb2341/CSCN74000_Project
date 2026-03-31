@@ -11,6 +11,8 @@
 #include <iostream>
 #include <string>
 #include <cstdint>
+#include "Logger.h"
+
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -24,6 +26,8 @@ private:
 	std::string sharedSecret;			// Shared Secret key.
 	
 	int flightID;
+
+	Logger logger{ "inflightclient_log.txt" };
 
 	// Reads shared secret from a key=value .txt config file.
 	// Returns true if the SECRET key is found and loaded.
@@ -52,8 +56,10 @@ private:
 	// Safely closes a SOCKET handle and resets it to INVALID_SOCKET.
 	void CloseSocket(SOCKET* sock);
 
+	// Recieves messages
 	void reciecveMessage();
 
+	// Sends messages
 	void sendMessage(int messageType, std::string message);
 
 public:
