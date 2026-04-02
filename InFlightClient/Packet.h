@@ -12,8 +12,8 @@ private:
 	{
 		unsigned int FlightID;				//Source ID
 		unsigned int MessageType;			//Line number of the input file being transmitted
-		unsigned char TimeStamp;					//Number of characters in the line
 		unsigned int Length;
+		unsigned char TimeStamp;					//Number of characters in the line
 	} Head;
 	char Data[MAX_DATA_SIZE];							//The data bytes
 	unsigned int CRC;					//Cyclic Redundancy Check
