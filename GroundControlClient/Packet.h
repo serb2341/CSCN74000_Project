@@ -12,8 +12,8 @@ private:
 	{
 		unsigned int FlightID;				//Source ID
 		unsigned int MessageType;			//Line number of the input file being transmitted
-		unsigned int Length;
 		unsigned char TimeStamp;					//Number of characters in the line
+		unsigned int Length;
 	} Head;
 	char Data[MAX_DATA_SIZE];							//The data bytes
 	unsigned int CRC;					//Cyclic Redundancy Check
@@ -21,7 +21,7 @@ private:
 	char TxBuffer[sizeof(Head) + MAX_DATA_SIZE + sizeof(unsigned int)];
 
 public:
-	Packet() { 
+	Packet() {
 		(void)memset(&Head, 0, sizeof(Head));
 		for (unsigned int i = 0U; i < MAX_DATA_SIZE; ++i) // prevent misra error "'Data' array should not decay to a pointer."
 		{
@@ -32,15 +32,12 @@ public:
 			TxBuffer[i] = '\0';
 		}
 	} //Default Constructor - Safe State
-	
-	void SetFlightID(unsigned int value) { Head.FlightID = value; };		//Sets the line number within the object
+
+	void SetFlightID(unsigned int value) { Head.FlightID = value; };		//Sets the flight ID in the packet header to the value passed in as a parameter
+	// get the value of the flight ID from the packet header
+	unsigned int GetFlightID() const { return Head.FlightID; };
 	void SetMessageType(unsigned int value) { Head.MessageType = value; };
 	void SetTimeStamp(unsigned char value) { Head.TimeStamp = value; };
-
-	const char* GetData() const
-	{
-		return Data;
-	}
 
 	void DisplayInFlightSide(std::ostream& os)
 	{
@@ -51,7 +48,7 @@ public:
 	void DisplayGroundControlSide(std::ostream& os)
 	{
 		os << std::dec;
-		os << Head.FlightID << " | " << Data  << std::endl;
+		os << Head.FlightID << " | " << Data << std::endl;
 	}
 
 	Packet(const char* src) //Overloaded constructor that takes character pointer src and uses it to populate the packet
@@ -75,7 +72,7 @@ public:
 			{
 				Data[i] = src[sizeof(Head) + i];
 			}
-			
+
 			Data[Head.Length] = '\0'; //adds termination character to end of the Data array
 
 			unsigned int offset = sizeof(Head) + Head.Length; // prevents "Array indexing should be the only form of pointer arithmetic and it should be applied only to objects defined as an array type."
@@ -97,7 +94,7 @@ public:
 			{
 				Size = MAX_DATA_SIZE;
 			}
-			
+
 			for (unsigned int i = 0U; i < Size; ++i) // copies data
 			{
 				Data[i] = srcData[i];
@@ -117,13 +114,13 @@ public:
 		for (unsigned int i = 0U; i < Head.Length; ++i) //copies the memory of the Data into the TxBuffer after the Head
 		{
 			TxBuffer[sizeof(Head) + i] = Data[i];
-		} 
+		}
 		unsigned int offset = sizeof(Head) + Head.Length; // prevents misra array and decay rules
 		unsigned char* crcBytes = reinterpret_cast<unsigned char*>(&CRC);
 		for (unsigned int i = 0U; i < sizeof(unsigned int); ++i) //copies the memory of the CRC to the TxBuffer after the Data
 		{
 			TxBuffer[offset + i] = crcBytes[i];
-		} 
+		}
 
 		return TxBuffer; //returns the character array buffer to be sent to the Server
 	};

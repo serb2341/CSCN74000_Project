@@ -129,6 +129,11 @@
   <ItemGroup>
     <ClCompile Include="GroundControlSource.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Server\CRC32.h" />
+    <ClInclude Include="..\Server\VerificationPacket.h" />
+    <ClInclude Include="Packet.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

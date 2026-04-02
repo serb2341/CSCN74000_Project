@@ -370,3 +370,7 @@ GroundControlClient/server_config.txt
 
 # Ignore InFlightClient config file
 InFlightClient/server_config.txt
+/GroundControlClient/VerificationPacket.h
+/GroundControlClient/Packet.h
+/GroundControlClient/Handshake.h
+/GroundControlClient/CRC32.h
