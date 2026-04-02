@@ -37,6 +37,11 @@ public:
 	void SetMessageType(unsigned int value) { Head.MessageType = value; };
 	void SetTimeStamp(unsigned char value) { Head.TimeStamp = value; };
 
+	const char* GetData() const
+	{
+		return Data;
+	}
+
 	void DisplayInFlightSide(std::ostream& os)
 	{
 		os << std::dec;

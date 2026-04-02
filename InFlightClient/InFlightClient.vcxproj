@@ -129,11 +129,18 @@
   <ItemGroup>
     <ClCompile Include="..\Server\CRC32.cpp" />
     <ClCompile Include="InFlightClientSource.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CRC32.h" />
+    <ClInclude Include="InFlightClient.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="Packet.h" />
+    <ClInclude Include="PacketHeader.h" />
     <ClInclude Include="VerificationPacket.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\..\..\Downloads\server_config.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
