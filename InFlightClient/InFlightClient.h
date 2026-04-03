@@ -57,7 +57,7 @@ private:
 	void CloseSocket(SOCKET* sock);
 
 	// Recieves messages
-	void reciecveMessage();
+	void receiveMessage();
 
 	// Sends messages
 	void sendMessage(int messageType, std::string message);

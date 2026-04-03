@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClCompile Include="CRC32.cpp" />
     <ClCompile Include="GroundControlSource.cpp" />
+    <ClCompile Include="Packet.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Server\CRC32.h" />

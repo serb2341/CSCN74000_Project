@@ -1,5 +1,4 @@
 #include "InFlightClient.h"
-#include "PacketHeader.h"
 #include "VerificationPacket.h"
 #include "Packet.h"
 #include "CRC32.h"
@@ -8,6 +7,7 @@
 #include <sstream>
 #include <cstdlib>
 #include <ctime>
+#include <chrono>
 
 InFlightClient::InFlightClient() {
 	this->clientSocket = INVALID_SOCKET;
@@ -320,7 +320,9 @@ void InFlightClient::sendMessage(int messageType, std::string message) {
 	Packet newPkt; //Packet object is created
 	newPkt.SetFlightID(this->flightID); //populates the newPkt object with the data 
 	newPkt.SetMessageType(messageType); //populates the newPkt object with the data
-	newPkt.SetTimeStamp(static_cast<unsigned char>(time(nullptr)));
+	newPkt.SetTimeStamp(std::chrono::duration_cast<std::chrono::seconds>(
+		std::chrono::system_clock::now().time_since_epoch()
+	).count());
 	unsigned int Size = 0;
 	newPkt.SetData(message.c_str(), message.size());
 	char* Tx = newPkt.SerializeData(Size);
@@ -331,25 +333,108 @@ void InFlightClient::sendMessage(int messageType, std::string message) {
 	logger.Log(message.c_str());
 }
 
-void InFlightClient::reciecveMessage()
+void InFlightClient::receiveMessage()
 {
-	char rxBuffer[512] = {};
-	int bytes = recv(this->clientSocket, rxBuffer, sizeof(rxBuffer), 0);
-	if (bytes <= 0) {
-		std::cout << "Error: No data recieved." << std::endl; //Error checking, no data was sent
+	// ---- Phase 1: Receiving the fixed-size header. ----
+	char headerBuffer[sizeof(PacketHeader)];
+
+	int bytesReceived = recv(this->clientSocket, headerBuffer, sizeof(headerBuffer), MSG_WAITALL);
+
+	if (bytesReceived <= 0) {
+		std::cout << "[InFlightClient] Server disconnected." << std::endl;
+
+		this->Shutdown();
+
+		return;
 	}
-	Packet rxPkt(rxBuffer);
-	// Performing a validation for corrupted packets. If the CRC check fails, we skip processing this packet and wait for the next one.
-	if (rxPkt.CalculateCRC() != 0xFF00FF00U) { // Using the constant from Packet.h
-		std::cout << "[Warning] Corrupted packet recieved!\n";
+
+	else if (bytesReceived != sizeof(PacketHeader)) {
+		std::cerr << "[InFlightClient] Header recv() failed. Error: " << WSAGetLastError() << std::endl;
+
+		return;
+	};
+
+
+	// ---- Phase 2: Reading Length from header and allocating exact buffer. ----
+	PacketHeader pktHead {};
+
+	std::memcpy(&pktHead, headerBuffer, sizeof(pktHead));
+
+	char* recvBuffer = new char[sizeof(pktHead) + pktHead.Length + sizeof(uint32_t)];
+
+	std::memset(recvBuffer, 0, sizeof(pktHead) + pktHead.Length + sizeof(uint32_t));
+
+	std::memcpy(recvBuffer, &pktHead, sizeof(pktHead));
+
+
+	// ---- Phase 3: Receiving Body + CRC tail. ----
+	bytesReceived = recv(this->clientSocket, recvBuffer + sizeof(pktHead), pktHead.Length + sizeof(uint32_t), MSG_WAITALL);
+
+	if (bytesReceived <= 0) {
+		std::cout << "[InFlightClient] Server disconnected during body recv." << std::endl;
+
+		delete[] recvBuffer;
+		recvBuffer = nullptr;
+
+		this->Shutdown();
+
+		return;
 	}
+
+	else if (bytesReceived != (pktHead.Length + sizeof(uint32_t))) {
+		std::cerr << "[InFlightClient] Body recv() failed. Error: " << WSAGetLastError() << std::endl;
+
+		delete[] recvBuffer;
+		recvBuffer = nullptr;
+
+		return;
+	};
+
+
+	// ---- Phase 4: Validating structure and CRC-32. ----
+	if (!this->ValidatePacket(recvBuffer, sizeof(pktHead) + pktHead.Length + sizeof(uint32_t))) {
+		std::cout << "[Warning] Corrupted packet received! Dropping." << std::endl;
+
+		std::memset(recvBuffer, 0, sizeof(pktHead) + pktHead.Length + sizeof(uint32_t));
+
+		delete[] recvBuffer;
+		recvBuffer = nullptr;
+
+		return;
+	};
+
+
+	// ---- Phase 5: Deserializing and Displaying Packet. ----
+	Packet rxPkt(recvBuffer);
+
+	delete[] recvBuffer;
+	recvBuffer = nullptr;
+
 	rxPkt.DisplayInFlightSide(std::cout);
-	logger.Log(rxPkt.GetData());
+
+	logger.Log(std::string(rxPkt.GetData(), rxPkt.GetBodyLength()));
+
+
+
+
+
+	//char rxBuffer[512] = {};
+	//int bytes = recv(this->clientSocket, rxBuffer, sizeof(rxBuffer), 0);
+	//if (bytes <= 0) {
+	//	std::cout << "Error: No data recieved." << std::endl; //Error checking, no data was sent
+	//}
+	//Packet rxPkt(rxBuffer);
+	//// Performing a validation for corrupted packets. If the CRC check fails, we skip processing this packet and wait for the next one.
+	//if (rxPkt.CalculateCRC() != 0xFF00FF00U) { // Using the constant from Packet.h
+	//	std::cout << "[Warning] Corrupted packet recieved!\n";
+	//}
+	//rxPkt.DisplayInFlightSide(std::cout);
+	//logger.Log(rxPkt.GetData());
 }
 
 void InFlightClient::Run() {
 	sendMessage(0, "Connected");
-	reciecveMessage();
+	receiveMessage();
 	
 	// Main loop for communication
 	bool running = true;
@@ -406,8 +491,8 @@ void InFlightClient::Run() {
 			break;
 		}
 
-		// Recieve response from groun control
-		reciecveMessage();
+		// Recieve response from ground control
+		receiveMessage();
 	}
 };
 
