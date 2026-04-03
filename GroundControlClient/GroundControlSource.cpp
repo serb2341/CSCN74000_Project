@@ -102,11 +102,11 @@ int main() {
 
         Packet rxPkt(rxBuffer);
 
-		// Performing a validation for corrupted packets. If the CRC check fails, we skip processing this packet and wait for the next one.
-        if (rxPkt.CalculateCRC() != 0xFF00FF00U) { // Using the constant from Packet.h
-            std::cout << "[Warning] Corrupted packet received! Ignoring...\n";
-            continue; // Skip this iteration and wait for a clean packet
-        }
+		//// Performing a validation for corrupted packets. If the CRC check fails, we skip processing this packet and wait for the next one.
+  //      if (rxPkt.CalculateCRC() != 0xFF00FF00U) { // Using the constant from Packet.h
+  //          std::cout << "[Warning] Corrupted packet received! Ignoring...\n";
+  //          continue; // Skip this iteration and wait for a clean packet
+  //      }
 
 		// getting the flight ID from the incoming packet to use in the response packet
         unsigned int flightID;
