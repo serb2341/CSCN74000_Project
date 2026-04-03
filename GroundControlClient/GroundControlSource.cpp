@@ -1,5 +1,6 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #endif
 
 #include <winsock2.h>
@@ -10,9 +11,9 @@
 #include <string>
 #include <ctime>
 #include "Packet.h"
-#include "VerificationPacket.h"
+//#include "VerificationPacket.h"
 #include "Handshake.h"
-#include "CRC32.h"
+//#include "CRC32.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -60,6 +61,36 @@ int main() {
     }
 
     std::cout << "Handshake Complete. Waiting for Flight Client...\n";
+
+    // ---------------SUDHAN ADDED THIS-------------------
+    // Wait to receive a message before being able to send anything
+    char rxBuffer[512] = {};
+    int bytes = recv(clientSocket, rxBuffer, sizeof(rxBuffer), 0);
+
+    Packet rxPkt_test(rxBuffer);
+
+    // getting the flight ID from the incoming packet to use in the response packet
+    unsigned int flightID;
+    flightID = rxPkt_test.GetFlightID();
+
+    std::cout << "\n[Incoming] ";
+    rxPkt_test.DisplayGroundControlSide(std::cout);
+
+    // Send Response
+    std::cout << "Enter Reply: ";
+    std::string msg;
+    std::getline(std::cin, msg);
+
+    Packet txPkt;
+    txPkt.SetFlightID(flightID);
+    txPkt.SetData(msg.c_str(), msg.size());
+
+    unsigned int txSize = 0;
+    char* txData = txPkt.SerializeData(txSize);
+    send(clientSocket, txData, txSize, 0);
+
+    Packet rxPkt(rxBuffer);
+    // ---------------SUDHAN ADDED THIS-------------------
 
     // Communication Loop 
     bool running = true;

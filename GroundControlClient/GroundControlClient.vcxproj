@@ -127,11 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CRC32.cpp" />
     <ClCompile Include="GroundControlSource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Server\CRC32.h" />
     <ClInclude Include="..\Server\VerificationPacket.h" />
+    <ClInclude Include="Handshake.h" />
     <ClInclude Include="Packet.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
