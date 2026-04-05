@@ -20,12 +20,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CRC32.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="PacketHeader.h" />
     <ClInclude Include="Server.h" />
     <ClInclude Include="VerificationPacket.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CRC32.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Server.cpp" />
   </ItemGroup>
