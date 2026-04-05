@@ -297,7 +297,7 @@ bool InFlightClient::Initialize(int flightID) {
 	this->isRunning = true;
 	this->flightID = flightID;
 
-	std::cout << "[InFlightClient] Initialized. Connected on port " << SERVER_PORT << std::endl;
+	std::cout << "[InFlightClient] Initialized. Connected on port " << std::endl;
 
 	return true;
 };
