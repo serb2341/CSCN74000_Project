@@ -12,6 +12,8 @@
 #include <string>
 #include <cstdint>
 
+#include "Logger.h"
+
 #pragma comment(lib, "Ws2_32.lib")
 
 #define SERVER_PORT 54000					// This is the default port that the server listens on.
@@ -50,7 +52,10 @@ private:
 	std::atomic<bool> isRunning;		// Set to false for graceful shutdown.
 	std::atomic<ServerState> serverState;
 
+	Logger logger;
+
 	std::string sharedSecret;			// Shared Secret key.
+	std::string logFilePath;
 
 	// Reads shared secret from a key=value .txt config file.
 	// Returns true if the SECRET key is found and loaded.
@@ -73,7 +78,7 @@ private:
 	// Relay loop executed on each client thread.
 	// Receives raw bytes from sourceSocket and forwards them to destinationSocket.
 	// clientName is used only for console log messages.
-	void RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std::string& clientName);
+	void RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std::string& clientName, const std::string& destinationName);
 
 	// Validates packet structure and CRC-32 integrity.
 	// buffer    - pointer to the full assembled packet (Header + Body + CRC tail)
@@ -88,8 +93,7 @@ private:
 	void SetServerState(ServerState newState);
 
 	// Transitions a per-client state and logs the change to the console.
-	// Static because it operates on a local variable, not a member.
-	static void SetClientState(ClientState& current, ClientState next, const std::string& clientName);
+	void SetClientState(ClientState& current, ClientState next, const std::string& clientName);
 
 public:
 	Server();

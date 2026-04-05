@@ -31,6 +31,9 @@ bool Server::LoadConfig(const std::string& configPath) {
 		return false;
 	};
 
+	bool secretFound = false;
+	bool logFileFound = false;
+
 	std::string line;
 
 	while (std::getline(configFile, line)) {
@@ -55,13 +58,28 @@ bool Server::LoadConfig(const std::string& configPath) {
 
 			std::cout << "[Server] Shared secret loaded from config." << std::endl;
 
-			return true;
+			secretFound = true;
+		}
+
+		else if (key == "LOG_FILE") {
+			this->logFilePath = value;
+
+			std::cout << "[Server] Log file path loaded: " << value << std::endl;
+
+			logFileFound = true;
 		};
 	};
 
-	std::cerr << "[Server] SECRET key not found in config file." << std::endl;
+	if (!secretFound) {
+		std::cerr << "[Server] SECRET key not found in config." << std::endl;
+	};
+		
 
-	return false;
+	if (!logFileFound) {
+		std::cerr << "[Server] LOG_FILE key not found in config." << std::endl;
+	};
+		
+	return secretFound && logFileFound;
 };
 
 bool Server::InitializeWinsock() {
@@ -141,6 +159,8 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	int bytesReceived = recv(clientSocket, (char*)(&clientChallenge), sizeof(ChallengePacket), MSG_WAITALL);
 
 	if (bytesReceived != sizeof(ChallengePacket)) {
+		this->logger.LogSecurityException(clientName, "Step 1: Failed to receive challenge packet.");
+
 		std::cerr << "[" << clientName << "] Handshake Step 1: Failed to receive challenge. Error: " << WSAGetLastError() << std::endl;
 
 		return false;
@@ -148,6 +168,8 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 
 	// Validating the challenge packet type.
 	if (static_cast<VerificationPacketType>(clientChallenge.Type) != VerificationPacketType::CHALLENGE) {
+		this->logger.LogSecurityException(clientName, "Step 1: Unexpected packet type (expected CHALLENGE).");
+
 		std::cerr << "[" << clientName << "] Handshake Step 1: Unexpected packet type." << std::endl;
 
 		return false;
@@ -157,10 +179,15 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	uint32_t expectedChallengeCRC = CRC32::Calculate(reinterpret_cast<const char*>(&clientChallenge), sizeof(uint32_t) + sizeof(uint32_t));			// Type + Random
 
 	if (clientChallenge.CRC32 != expectedChallengeCRC) {
+		this->logger.LogSecurityException(clientName, "Step 1: CRC-32 validation failed on challenge. Connection terminated.");
+
 		std::cerr << "[" << clientName << "] Handshake Step 1: CRC-32 validation failed on challenge." << std::endl;
 
 		return false;
 	};
+
+	// Log the received challenge (US-39: source, dest, header content).
+	this->logger.LogHandshake(clientName, "SERVER", "CHALLENGE", clientChallenge.Random, "Random");
 
 	std::cout << "[" << clientName << "] Handshake Step 1: Challenge received and validated." << std::endl;
 
@@ -178,10 +205,14 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	int bytesSent = send(clientSocket, (const char*)(&serverResponse), sizeof(ResponsePacket), 0);
 
 	if (bytesSent != sizeof(ResponsePacket)) {
+		this->logger.LogSecurityException(clientName, "Step 2: Failed to send response.");
+
 		std::cerr << "[" << clientName << "] Handshake Step 2: Failed to send response. Error: " << WSAGetLastError() << std::endl;
 
 		return false;
 	};
+
+	this->logger.LogHandshake("SERVER", clientName, "RESPONSE", serverResponse.Signature, "Signature");
 
 	std::cout << "[" << clientName << "] Handshake Step 2: Response sent." << std::endl;
 
@@ -200,10 +231,14 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	bytesSent = send(clientSocket, (const char*)(&serverChallenge), sizeof(ChallengePacket), 0);
 
 	if (bytesSent != sizeof(ChallengePacket)) {
+		this->logger.LogSecurityException(clientName, "Step 3: Failed to send challenge.");
+
 		std::cerr << "[" << clientName << "] Handshake Step 3: Failed to send challenge. Error: " << WSAGetLastError() << std::endl;
 
 		return false;
 	};
+
+	this->logger.LogHandshake("SERVER", clientName, "CHALLENGE", serverChallenge.Random, "Random");
 
 	std::cout << "[" << clientName << "] Handshake Step 3: Challenge sent." << std::endl;
 
@@ -217,6 +252,8 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	bytesReceived = recv(clientSocket, (char*)(&clientResponse), sizeof(ResponsePacket), MSG_WAITALL);
 
 	if (bytesReceived != sizeof(ResponsePacket)) {
+		this->logger.LogSecurityException(clientName, "Step 4: Failed to receive response packet.");
+
 		std::cerr << "[" << clientName << "] Handshake Step 4: Failed to receive response. Error: " << WSAGetLastError() << std::endl;
 
 		return false;
@@ -224,6 +261,8 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 
 	// Validate the response packet type.
 	if (static_cast<VerificationPacketType>(clientResponse.Type) != VerificationPacketType::RESPONSE) {
+		this->logger.LogSecurityException(clientName, "Step 4: Unexpected packet type (expected RESPONSE). Connection terminated.");
+
 		std::cerr << "[" << clientName << "] Handshake Step 4: Unexpected packet type." << std::endl;
 
 		return false;
@@ -233,6 +272,8 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	uint32_t expectedResponseCRC = CRC32::Calculate((const char*)(&clientResponse), (sizeof(uint32_t) + sizeof(uint32_t)));			// Type + Signature
 
 	if (clientResponse.CRC32 != expectedResponseCRC) {
+		this->logger.LogSecurityException(clientName, "Step 4: CRC-32 validation failed on response. Connection terminated.");
+
 		std::cerr << "[" << clientName << "] Handshake Step 4: CRC-32 validation failed on response." << std::endl;
 
 		return false;
@@ -243,10 +284,14 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	uint32_t expectedSignature = this->ComputeSignature(serverChallenge.Random);
 
 	if (clientResponse.Signature != expectedSignature) {
+		this->logger.LogSecurityException(clientName, "Step 4: Signature mismatch. Client failed authentication. Connection terminated.");
+
 		std::cerr << "[" << clientName << "] Handshake Step 4: Signature mismatch. Client failed authentication." << std::endl;
 
 		return false;
-	}
+	};
+
+	this->logger.LogHandshake(clientName, "SERVER", "RESPONSE", clientResponse.Signature, "Signature");
 
 	std::cout << "[" << clientName << "] Handshake Step 4: Response validated. Handshake complete." << std::endl;
 
@@ -258,7 +303,7 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 //  Relay Loop
 // ============================================================
 
-void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std::string& clientName) {
+void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std::string& clientName, const std::string& destinationName) {
 	std::cout << "[" << clientName << "] Relay thread started." << std::endl;
 
 	// Each relay thread owns its own ClientState — no shared state collision.
@@ -275,12 +320,16 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		if (bytesReceived == 0) {
 			std::cout << "[" << clientName << "] Client disconnected." << std::endl;
 
+			this->logger.LogDisconnect(clientName);
+
 			break;
 		}
 
 		else if ((bytesReceived == SOCKET_ERROR) || (bytesReceived != sizeof(PacketHeader))) {
 			if (this->isRunning) {
 				std::cerr << "[" << clientName << "] Header recv() failed. Error: " << WSAGetLastError() << std::endl;
+
+				this->logger.LogDisconnect(clientName);
 			};
 
 			break;
@@ -306,6 +355,8 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		if (bytesReceived == 0) {
 			std::cout << "[" << clientName << "] Client disconnected during body recv." << std::endl;
 
+			this->logger.LogDisconnect(clientName);
+
 			std::memset(recvBuffer, 0, totalPktSize);
 
 			delete[] recvBuffer;
@@ -317,6 +368,8 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		else if ((bytesReceived == SOCKET_ERROR) || (static_cast<unsigned int>(bytesReceived) != (static_cast<int>(totalPktSize) - static_cast<int>(sizeof(PacketHeader))))) {
 			if (this->isRunning) {
 				std::cerr << "[" << clientName << "] Body recv() failed. Error: " << WSAGetLastError() << std::endl;
+
+				this->logger.LogDisconnect(clientName);
 			};
 
 			std::memset(recvBuffer, 0, totalPktSize);
@@ -345,6 +398,15 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 
 			continue; // Drop this packet — do NOT forward it, keep the relay alive
 		};
+
+		// Log the validated packet header fields.
+		this->logger.LogPacket(
+			std::to_string(pktHeader.FlightID),  // Source = FlightID
+			destinationName,                      // Dest = other client
+			pktHeader.FlightID,
+			pktHeader.MessageType,
+			pktHeader.Length,
+			pktHeader.TimeStamp);
 
 
 		Server::SetClientState(clientState, ClientState::TRANSMITTING, clientName);
@@ -453,6 +515,13 @@ bool Server::Initialize() {
 		return false;
 	};
 
+	// Start the logger thread before anything else so all events are captured.
+	if (!this->logger.Start(this->logFilePath)) {
+		std::cerr << "[Server] Failed to start logger." << std::endl;
+
+		return false;
+	};
+
 	if (!this->InitializeWinsock()) {
 		std::cerr << "[Server] Failed to initialize Winsock." << std::endl;
 
@@ -471,6 +540,9 @@ bool Server::Initialize() {
 	this->SetServerState(ServerState::LISTENING);
 
 	this->isRunning = true;
+
+	// Log the initial LISTENING state.
+	this->logger.LogStateTransition("SERVER", "INITIALIZING", "LISTENING");
 
 	std::cout << "[Server] Initialized. Listening on port " << SERVER_PORT << std::endl;
 
@@ -565,10 +637,10 @@ void Server::AcceptClients() {
 	// Here we spawn one relay thread per client.
 
 	// Ground Control Client Thread.
-	this->groundControlThread = std::thread(&Server::RelayLoop, this, this->groundControlSocket, this->airplaneSocket, std::string("Ground Control"));
+	this->groundControlThread = std::thread(&Server::RelayLoop, this, this->groundControlSocket, this->airplaneSocket, std::string("Ground Control"), std::string("In-flight Airplane"));
 
 	// In-flight Airplane Client Thread.
-	this->airplaneThread = std::thread(&Server::RelayLoop, this, this->airplaneSocket, this->groundControlSocket, std::string("In-flight Airplane"));
+	this->airplaneThread = std::thread(&Server::RelayLoop, this, this->airplaneSocket, this->groundControlSocket, std::string("In-flight Airplane"), std::string("Ground Control"));
 };
 
 void Server::Run() {
@@ -600,6 +672,8 @@ void Server::Shutdown() {
 		this->airplaneThread.join();
 	};
 
+	this->logger.Stop();
+
 	WSACleanup();
 
 	std::cout << "[Server] Shutdown complete." << std::endl;
@@ -619,13 +693,20 @@ static const char* ServerStateToString(ServerState state) {
 
 void Server::SetServerState(ServerState newState) {
 	ServerState oldState = this->serverState.load();
+
 	this->serverState.store(newState);
 
+	std::string from = ServerStateToString(oldState);
+	std::string to = ServerStateToString(newState);
+
 	std::cout << "[Server] State: "
-		<< ServerStateToString(oldState)
+		<< from
 		<< " --> "
-		<< ServerStateToString(newState)
+		<< to
 		<< std::endl;
+
+	// File (non-blocking).
+	this->logger.LogStateTransition("SERVER", from, to);
 };
 
 // Maps ClientState enum to a readable string for console output.
@@ -640,11 +721,17 @@ static const char* ClientStateToString(ClientState state) {
 };
 
 void Server::SetClientState(ClientState& current, ClientState next, const std::string& clientName) {
+	std::string from = ClientStateToString(current);
+	std::string to = ClientStateToString(next);
+
 	std::cout << "[" << clientName << "] State: "
-		<< ClientStateToString(current)
+		<< from
 		<< " --> "
-		<< ClientStateToString(next)
+		<< to
 		<< std::endl;
+
+	// File (non-blocking).
+	this->logger.LogClientStateTransition(clientName, from, to);
 
 	current = next;
 };
