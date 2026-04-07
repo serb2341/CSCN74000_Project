@@ -52,6 +52,12 @@ private:
 	std::atomic<bool> isRunning;		// Set to false for graceful shutdown.
 	std::atomic<ServerState> serverState;
 
+	// ---------- Connection tracking ----------
+	// Set to false by the relay thread when its client disconnects.
+	// Used by Run() to decide whether to re-accept one or both clients.
+	std::atomic<bool> groundControlConnected;
+	std::atomic<bool> airplaneConnected;
+
 	Logger logger;
 
 	std::string sharedSecret;			// Shared Secret key.
@@ -66,6 +72,14 @@ private:
 
 	// Creates, binds, and begins listening on listeningSocket.
 	bool CreateListeningSocket();
+
+	// Accepts and handshakes the Ground Control client.
+	// Returns true on success.
+	bool AcceptGroundControl();
+
+	// Accepts and handshakes the Airplane client.
+	// Returns true on success.
+	bool AcceptAirplane();
 
 	// Executes the full 4-packet mutual verification handshake with the client.
 	// Returns true if the handshake succeeds, false if it fails at any step.

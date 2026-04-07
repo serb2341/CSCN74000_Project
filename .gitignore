@@ -374,3 +374,6 @@ InFlightClient/server_config.txt
 /GroundControlClient/Packet.h
 /GroundControlClient/Handshake.h
 /GroundControlClient/CRC32.h
+/Server/server_log.txt
+/InFlightClient/inflightclient_log.txt
+/InFlightClient/telemetry.txt
