@@ -126,7 +126,7 @@ bool Server::CreateListeningSocket() {
 	};
 
 	// Allowing exactly 2 pending connections in the backlog.
-	result = listen(this->listeningSocket, 2);
+	result = listen(this->listeningSocket, MAX_PENDING_CONNECTIONS);
 
 	if (result == SOCKET_ERROR)
 	{
@@ -167,7 +167,8 @@ bool Server::AcceptGroundControl() {
 	};
 
 	// Set a 1-second receive timeout so the relay loop can check airplaneConnected periodically and exit if airplane drops.
-	DWORD timeout = 1000U;
+	DWORD timeout = SOCKET_RECV_TIMEOUT_MS;
+
 	setsockopt(this->groundControlSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout), sizeof(timeout));
 
 	this->groundControlConnected = true;
@@ -670,7 +671,7 @@ bool Server::Initialize() {
 	// Seed random number generator for challenge generation.
 	srand(static_cast<unsigned int>(time(nullptr)));
 
-	if (!this->LoadConfig("server_config.txt")) {
+	if (!this->LoadConfig(CONFIG_FILE_NAME)) {
 		std::cerr << "[Server] Failed to load config. Ensure server_config.txt exists with SECRET=<value>." << std::endl;
 
 		return false;
@@ -807,7 +808,7 @@ void Server::Run() {
 				this->groundControlThread.join();
 			};
 
-			this->groundControlThread = std::thread(&Server::RelayLoop, this, this->groundControlSocket, this->airplaneSocket, std::string("Ground Control"), std::string("In-flight Airplane"));
+			//this->groundControlThread = std::thread(&Server::RelayLoop, this, this->groundControlSocket, this->airplaneSocket, std::string("Ground Control"), std::string("In-flight Airplane"));
 		};
 	};
 

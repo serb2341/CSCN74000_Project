@@ -17,6 +17,9 @@
 #pragma comment(lib, "Ws2_32.lib")
 
 #define SERVER_PORT 54000					// This is the default port that the server listens on.
+#define CONFIG_FILE_NAME "server_config.txt"
+#define MAX_PENDING_CONNECTIONS 2
+#define SOCKET_RECV_TIMEOUT_MS 1000U
 
 // ============================================================
 //  Server-wide state — sequential lifecycle, one at a time.
