@@ -481,7 +481,8 @@ void InFlightClient::Run() {
 
 			delete[] telBuffer;
 			telBuffer = nullptr;
-
+			
+			std::cout << "In Flight Client | Telemetry file successfully sent" << std::endl;
 			/*std::ifstream file("telemetry.txt");
 
 			if (!file)
