@@ -51,4 +51,7 @@ public:
 	const char* GetData();
 	unsigned int GetBodyLength();
 	unsigned int GetFlightID();
+
+	// Returns a constant reference to the internal header structure
+	const PacketHeader& GetHeader() const;
 };
