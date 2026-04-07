@@ -60,7 +60,7 @@ private:
 	void receiveMessage();
 
 	// Sends messages
-	void sendMessage(int messageType, std::string message);
+	void sendMessage(int messageType, const char* message, unsigned int size);
 
 public:
 	InFlightClient();

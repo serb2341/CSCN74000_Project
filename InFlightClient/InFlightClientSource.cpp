@@ -316,7 +316,7 @@ void InFlightClient::ValidateConnection() {
 	std::cout << "[InFlightClient] Server handshake successful." << std::endl;
 };
 
-void InFlightClient::sendMessage(int messageType, std::string message) {
+void InFlightClient::sendMessage(int messageType, const char* message, unsigned int size) {
 	Packet newPkt; //Packet object is created
 	newPkt.SetFlightID(this->flightID); //populates the newPkt object with the data 
 	newPkt.SetMessageType(messageType); //populates the newPkt object with the data
@@ -324,13 +324,13 @@ void InFlightClient::sendMessage(int messageType, std::string message) {
 		std::chrono::system_clock::now().time_since_epoch()
 	).count());
 	unsigned int Size = 0;
-	newPkt.SetData(message.c_str(), message.size());
+	newPkt.SetData(message, size);
 	char* Tx = newPkt.SerializeData(Size);
 	if (send(this->clientSocket, Tx, Size, 0) == SOCKET_ERROR)
 	{
 		std::cout << "Error sending connection packet\n";
 	}
-	logger.Log(message.c_str());
+	logger.Log(message, size);
 }
 
 void InFlightClient::receiveMessage()
@@ -356,7 +356,7 @@ void InFlightClient::receiveMessage()
 
 
 	// ---- Phase 2: Reading Length from header and allocating exact buffer. ----
-	PacketHeader pktHead {};
+	PacketHeader pktHead{};
 
 	std::memcpy(&pktHead, headerBuffer, sizeof(pktHead));
 
@@ -412,28 +412,12 @@ void InFlightClient::receiveMessage()
 
 	rxPkt.DisplayInFlightSide(std::cout);
 
-	logger.Log(std::string(rxPkt.GetData(), rxPkt.GetBodyLength()));
-
-
-
-
-
-	//char rxBuffer[512] = {};
-	//int bytes = recv(this->clientSocket, rxBuffer, sizeof(rxBuffer), 0);
-	//if (bytes <= 0) {
-	//	std::cout << "Error: No data recieved." << std::endl; //Error checking, no data was sent
-	//}
-	//Packet rxPkt(rxBuffer);
-	//// Performing a validation for corrupted packets. If the CRC check fails, we skip processing this packet and wait for the next one.
-	//if (rxPkt.CalculateCRC() != 0xFF00FF00U) { // Using the constant from Packet.h
-	//	std::cout << "[Warning] Corrupted packet recieved!\n";
-	//}
-	//rxPkt.DisplayInFlightSide(std::cout);
-	//logger.Log(rxPkt.GetData());
-}
+	logger.Log(rxPkt.GetData(), rxPkt.GetBodyLength());
+};
 
 void InFlightClient::Run() {
-	sendMessage(0, "Connected");
+	char msg[] = "Connected";
+	sendMessage(0, msg, sizeof(msg) - 1);
 	receiveMessage();
 	
 	// Main loop for communication
@@ -458,32 +442,70 @@ void InFlightClient::Run() {
 			std::cout << "Enter message: ";
 			(void)std::getline(std::cin, msg); // inflight client enters message
 
-			sendMessage(0, msg);
+			sendMessage(0, msg.c_str(), msg.length());
 		}
 		else if (choice == 2)
 		{
-			std::ifstream file("telemetry.txt");
+			std::ifstream file("telemetry.txt", std::ios::binary | std::ios::ate);
+
+			if (!file) {
+				std::cout << "Telemetry file not found.\n";
+
+				continue;
+			};
+
+			std::streamsize size = file.tellg();
+
+			file.seekg(0, std::ios::beg);				// Moving the pointer back to beginning of the file.
+
+			std::string bodyHeading = "TELEMETRY|";
+
+			// Allocating heap memory.
+			char* telBuffer = new char[size + bodyHeading.length()];
+
+			if (!telBuffer) {
+				std::cout << "Failed to allocate dynamic memory to telemetry file.\n";
+
+				continue;
+			};
+
+			std::memset(telBuffer, 0, (size + bodyHeading.length()));
+
+			std::memcpy(telBuffer, bodyHeading.c_str(), bodyHeading.length());
+
+			if (file.read(telBuffer + bodyHeading.length(), size)) {
+				std::cout << "Sending telemetry...\n";
+
+				this->sendMessage(1, telBuffer, size);
+			};
+
+			delete[] telBuffer;
+			telBuffer = nullptr;
+
+			/*std::ifstream file("telemetry.txt");
 
 			if (!file)
 			{
 				std::cout << "Telemetry file not found.\n";
 				continue;
-			}
+			}*/
 
-			std::string line;
+			//std::string line;
 
-			std::cout << "Sending telemetry...\n";
+			//std::cout << "Sending telemetry...\n";
 
-			while (std::getline(file, line))
-			{
-				std::string packet = "TELEMETRY|" + line;
-				sendMessage(1, packet.c_str());
-				
-				Sleep(10); // small delay to prevent packet flooding
-			}
+			//std::string packet = "TELEMETRY|";
 
-			std::string endPacket = "TELEMETRY_END";
-			sendMessage(1, endPacket.c_str());
+			//while (std::getline(file, line))
+			//{
+			//	packet += line;
+			//	sendMessage(1, packet.c_str());
+			//	
+			//	// Sleep(10); // small delay to prevent packet flooding
+			//}
+
+			// std::string endPacket = "TELEMETRY_END";
+			// sendMessage(1, endPacket.c_str());
 		}
 		else
 		{

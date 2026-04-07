@@ -28,7 +28,7 @@ public:
         }
     }
 
-    void Log(const std::string& message)
+    void Log(const char* message, unsigned int size)
     {
         std::time_t now = std::time(nullptr);
         char timeStr[26];

@@ -16,6 +16,9 @@ Server::Server() {
 	this->isRunning = false;
 
 	this->serverState = ServerState::INITIALIZING;
+
+	this->groundControlConnected = false;
+	this->airplaneConnected = false;
 };
 
 Server::~Server() {
@@ -133,6 +136,82 @@ bool Server::CreateListeningSocket() {
 
 		return false;
 	};
+
+	return true;
+};
+
+
+bool Server::AcceptGroundControl() {
+	std::cout << "[Server] Waiting for Ground Control to connect..." << std::endl;
+
+	this->groundControlSocket = accept(this->listeningSocket, nullptr, nullptr);
+
+	if (this->groundControlSocket == INVALID_SOCKET) {
+		std::cerr << "[Server] accept() failed for Ground Control. Error: " << WSAGetLastError() << std::endl;
+
+		return false;
+	};
+
+	std::cout << "[Server] Ground Control connected. Performing handshake..." << std::endl;
+
+	this->SetServerState(ServerState::VERIFICATION);
+
+	if (!this->PerformHandshake(this->groundControlSocket, "Ground Control")) {
+		std::cerr << "[Server] Ground Control failed handshake. Dropping connection." << std::endl;
+
+		this->CloseSocket(&(this->groundControlSocket));
+
+		this->SetServerState(ServerState::DISCONNECTING);
+
+		return false;
+	};
+
+	// Set a 1-second receive timeout so the relay loop can check airplaneConnected periodically and exit if airplane drops.
+	DWORD timeout = 1000U;
+	setsockopt(this->groundControlSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout), sizeof(timeout));
+
+	this->groundControlConnected = true;
+
+	this->SetServerState(ServerState::AUTHENTICATED);
+
+	std::cout << "[Server] Ground Control handshake successful." << std::endl;
+
+	return true;
+};
+
+
+bool Server::AcceptAirplane() {
+	std::cout << "[Server] Waiting for Airplane to connect..." << std::endl;
+
+	this->SetServerState(ServerState::LISTENING);
+
+	this->airplaneSocket = accept(this->listeningSocket, nullptr, nullptr);
+
+	if (this->airplaneSocket == INVALID_SOCKET) {
+		std::cerr << "[Server] accept() failed for Airplane. Error: " << WSAGetLastError() << std::endl;
+
+		return false;
+	};
+
+	std::cout << "[Server] Airplane connected. Performing handshake..." << std::endl;
+
+	this->SetServerState(ServerState::VERIFICATION);
+
+	if (!this->PerformHandshake(this->airplaneSocket, "Airplane")) {
+		std::cerr << "[Server] Airplane failed handshake. Dropping connection." << std::endl;
+
+		this->CloseSocket(&(this->airplaneSocket));
+
+		this->SetServerState(ServerState::DISCONNECTING);
+
+		return false;
+	};
+
+	this->airplaneConnected = true;
+
+	this->SetServerState(ServerState::AUTHENTICATED);
+
+	std::cout << "[Server] Airplane handshake successful." << std::endl;
 
 	return true;
 };
@@ -309,7 +388,11 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 	// Each relay thread owns its own ClientState — no shared state collision.
 	ClientState clientState = ClientState::RECEIVING;
 
+	bool sourceDisconnected = false;
+
 	while (this->isRunning) {
+		// ---- Phase 1: Receive the fixed-size header ----
+
 		// First we start with only receiving the Header of the data packet.
 		char headerBuffer[sizeof(PacketHeader)];
 
@@ -322,19 +405,46 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 
 			this->logger.LogDisconnect(clientName);
 
+			sourceDisconnected = true;   // Source (GC or Airplane) actually left.
+
 			break;
 		}
 
-		else if ((bytesReceived == SOCKET_ERROR) || (bytesReceived != sizeof(PacketHeader))) {
-			if (this->isRunning) {
+		else if ((bytesReceived == SOCKET_ERROR)) {
+			if (WSAGetLastError() == WSAETIMEDOUT) {
+				// Timeout — not an error. Check if airplane is still connected.
+				// If airplane dropped, exit so Run() can restart us pointing
+				// at the new airplane socket BEFORE new airplane relay starts.
+				if (!this->airplaneConnected)
+				{
+					std::cout << "[" << clientName << "] Airplane gone — relay exiting to reconnect." << std::endl;
+
+					sourceDisconnected = false; // GC is still connected
+
+					break;
+				}
+				continue; // Airplane still connected — keep waiting for GC to send
+			};
+
+			if (this->isRunning && this->groundControlConnected) {
 				std::cerr << "[" << clientName << "] Header recv() failed. Error: " << WSAGetLastError() << std::endl;
 
 				this->logger.LogDisconnect(clientName);
 			};
 
+			sourceDisconnected = true;   // Source gone or socket force-closed.
+
+			break;
+		}
+
+		else if ((bytesReceived != sizeof(PacketHeader))) {
+			sourceDisconnected = true;   // Source gone or socket force-closed.
+
 			break;
 		};
 
+
+		// ---- Phase 2: Read Length, allocate full buffer ----
 
 		// We serialize the Header.
 		PacketHeader pktHeader{};
@@ -357,6 +467,8 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 
 			this->logger.LogDisconnect(clientName);
 
+			sourceDisconnected = true;   // Source gone or socket force-closed.
+
 			std::memset(recvBuffer, 0, totalPktSize);
 
 			delete[] recvBuffer;
@@ -366,10 +478,12 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		}
 
 		else if ((bytesReceived == SOCKET_ERROR) || (static_cast<unsigned int>(bytesReceived) != (static_cast<int>(totalPktSize) - static_cast<int>(sizeof(PacketHeader))))) {
-			if (this->isRunning) {
+			if (this->isRunning && this->groundControlConnected) {
 				std::cerr << "[" << clientName << "] Body recv() failed. Error: " << WSAGetLastError() << std::endl;
 
 				this->logger.LogDisconnect(clientName);
+
+				sourceDisconnected = true;   // Source gone or socket force-closed.
 			};
 
 			std::memset(recvBuffer, 0, totalPktSize);
@@ -380,6 +494,8 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 			break;
 		};
 
+
+		// ---- Phase 3: PROCESSING — validate ----
 
 		Server::SetClientState(clientState, ClientState::PROCESSING, clientName);
 
@@ -409,6 +525,8 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 			pktHeader.TimeStamp);
 
 
+		// ---- Phase 4: TRANSMITTING — forward ----
+
 		Server::SetClientState(clientState, ClientState::TRANSMITTING, clientName);
 
 		// From here on, we are forwarding the data packet to the destination client.
@@ -422,6 +540,8 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 			delete[] recvBuffer;
 			recvBuffer = nullptr;
 
+			sourceDisconnected = false;   // DESTINATION gone, NOT source.
+
 			break;
 		};
 
@@ -433,6 +553,9 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		delete[] recvBuffer;
 		recvBuffer = nullptr;
 
+
+		// ---- Phase 5: Back to RECEIVING ----
+
 		Server::SetClientState(clientState, ClientState::RECEIVING, clientName);
 	};
 
@@ -440,10 +563,47 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 
 	this->SetServerState(ServerState::DISCONNECTING);
 
-	this->isRunning = false;
+	if (clientName == "Ground Control") {
+		if (sourceDisconnected) {
+			// GC actually disconnected — signal airplane relay to exit.
+			// Use the local destinationSocket handle (not this->airplaneSocket)
+			// to avoid closing a socket that may have already been reassigned
+			// to a new airplane connection by AcceptAirplane().
+			this->groundControlConnected = false;
+			this->airplaneConnected = false;
 
-	this->CloseSocket(&(this->groundControlSocket));
-	this->CloseSocket(&(this->airplaneSocket));
+			if (destinationSocket != INVALID_SOCKET) {
+				closesocket(destinationSocket);				// unblocks airplane relay's recv().
+			};
+
+			this->groundControlSocket = INVALID_SOCKET;
+			this->airplaneSocket = INVALID_SOCKET;
+		}
+
+		else {
+			// GC relay's send() to airplane failed — airplane is already gone.
+			// GC is still connected — DO NOT touch this->airplaneSocket.
+			// By the time we reach here, AcceptAirplane() may have already
+			// assigned a new airplane socket to this->airplaneSocket.
+			// Closing it here would kill the new connection.
+			// Just set the flag and exit — Run() handles the restart.
+			this->airplaneConnected = false;
+		};
+	}
+
+	else {
+		// Airplane relay exiting — close the specific socket handle we were
+		// given as a parameter, NOT this->airplaneSocket, because AcceptAirplane()
+		// in Run() may already be assigning a new value to this->airplaneSocket
+		// on the main thread concurrently.
+		this->airplaneConnected = false;
+
+		if (sourceSocket != INVALID_SOCKET) {
+			closesocket(sourceSocket);					 // triggers GC relay's send() to fail.
+
+			this->airplaneSocket = INVALID_SOCKET;
+		};
+	};
 };
 
 
@@ -550,100 +710,106 @@ bool Server::Initialize() {
 };
 
 void Server::AcceptClients() {
-	// 1st connection - Ground Control.
-	std::cout << "[Server] Waiting for Ground Control to connect..." << std::endl;
-
-	this->groundControlSocket = accept(this->listeningSocket, nullptr, nullptr);
-
-	if (this->groundControlSocket == INVALID_SOCKET) {
-		std::cerr << "[Server] accept() failed for Ground Control. Error: " << WSAGetLastError() << std::endl;
-
+	if (!this->AcceptGroundControl()) {
 		this->Shutdown();
 
 		return;
 	};
 
-	std::cout << "[Server] Ground Control connected. Performing handshake..." << std::endl;
-
-
-	// Transition: LISTENING --> VERIFICATION
-	this->SetServerState(ServerState::VERIFICATION);
-
-	if (!this->PerformHandshake(this->groundControlSocket, "Ground Control")) {
-		std::cerr << "[Server] Ground Control failed handshake. Dropping connection." << std::endl;
-
-		this->CloseSocket(&(this->groundControlSocket));
-
-		// Transition: VERIFICATION --> DISCONNECTING
-		this->SetServerState(ServerState::DISCONNECTING);
-
+	if (!this->AcceptAirplane()) {
 		this->Shutdown();
 
 		return;
 	};
 
+	std::cout << "[Server] Both clients verified. Starting relay threads." << std::endl;
 
-	// Transition: VERIFICATION --> AUTHENTICATED
-	this->SetServerState(ServerState::AUTHENTICATED);
-
-	std::cout << "[Server] Ground Control handshake successful." << std::endl;
-
-	
-	// 2nd connection - In-flight Airplane.
-	std::cout << "[Server] Waiting for Airplane to connect..." << std::endl;
-
-	// Transition: AUTHENTICATED --> LISTENING (waiting for 2nd client)
-	this->SetServerState(ServerState::LISTENING);
-
-	this->airplaneSocket = accept(this->listeningSocket, nullptr, nullptr);
-
-	if (this->airplaneSocket == INVALID_SOCKET) {
-		std::cerr << "[Server] accept() failed for In-flight Airplane. Error: " << WSAGetLastError() << std::endl;
-
-		this->Shutdown();
-
-		return;
-	};
-
-	std::cout << "[Server] Airplane connected. Performing handshake..." << std::endl;
-
-
-	// Transition: LISTENING --> VERIFICATION
-	this->SetServerState(ServerState::VERIFICATION);
-
-
-	if (!this->PerformHandshake(this->airplaneSocket, "Airplane")) {
-		std::cerr << "[Server] Airplane failed handshake. Dropping connection." << std::endl;
-
-		this->CloseSocket(&(this->airplaneSocket));
-
-		// Transition: VERIFICATION --> DISCONNECTING
-		this->SetServerState(ServerState::DISCONNECTING);
-
-		this->Shutdown();
-
-		return;
-	};
-
-	// Transition: VERIFICATION --> AUTHENTICATED
-	this->SetServerState(ServerState::AUTHENTICATED);
-
-	std::cout << "[Server] Airplane handshake successful." << std::endl;
-	std::cout << "[Server] Both clients connected. Starting relay threads." << std::endl;
-
-	// Closing the listening socket because no more connections are needed.
-	this->CloseSocket(&(this->listeningSocket));
-
-	// Here we spawn one relay thread per client.
-
-	// Ground Control Client Thread.
+	// Ground Control thread: GC --> Airplane
 	this->groundControlThread = std::thread(&Server::RelayLoop, this, this->groundControlSocket, this->airplaneSocket, std::string("Ground Control"), std::string("In-flight Airplane"));
 
-	// In-flight Airplane Client Thread.
+	// Airplane thread: Airplane --> GC
 	this->airplaneThread = std::thread(&Server::RelayLoop, this, this->airplaneSocket, this->groundControlSocket, std::string("In-flight Airplane"), std::string("Ground Control"));
 };
 
 void Server::Run() {
+	while (this->isRunning) {
+		// ---- Wait for the airplane thread to exit ----
+		// The airplane thread always exits first (or simultaneously with GC):
+		//   - If only airplane disconnects: airplane thread exits naturally.
+		//   - If GC disconnects: GC relay closes the airplane socket, which
+		//     unblocks the airplane's recv() causing it to exit too.
+		if (this->airplaneThread.joinable()) {
+			this->airplaneThread.join();
+		};
+
+		if (!this->isRunning) {
+			break; // Shutdown() was called — exit the loop.
+		};
+
+		if (!this->groundControlConnected) {
+			// ---- Ground Control disconnected ----
+			// GC relay already closed both sockets. Join the GC thread too.
+			std::cout << "[Server] Ground Control disconnected. Re-accepting both clients." << std::endl;
+
+			if (this->groundControlThread.joinable())
+			{
+				this->groundControlThread.join();
+			}
+
+			// Reset flags and go back to LISTENING for both.
+			this->groundControlConnected = false;
+
+			this->airplaneConnected = false;
+
+			this->SetServerState(ServerState::LISTENING);
+
+			// Re-accept both clients and spawn new relay threads.
+			this->AcceptClients();
+		}
+
+		else {
+			// ---- Only Airplane disconnected ----
+			// GC relay thread is still running — do NOT join or touch it.
+			std::cout << "[Server] Airplane disconnected. Keeping Ground Control. Re-accepting airplane." << std::endl;
+
+			this->airplaneConnected = false;
+
+			this->SetServerState(ServerState::LISTENING);
+
+			// 1. Wait for old GC relay to exit via timeout (?1 second).
+			// It will see airplaneConnected=false and break out cleanly.
+			if (this->groundControlThread.joinable()) {
+				this->groundControlThread.join();
+			};
+
+			// 2. Accept new airplane — GC relay is fully stopped now.
+			if (!this->AcceptAirplane()) {
+				// Airplane failed to reconnect — shut everything down.
+				this->Shutdown();
+
+				break;
+			};
+
+			// 3. Start NEW GC relay first — it's ready to forward immediately.
+			this->groundControlThread = std::thread(&Server::RelayLoop, this, this->groundControlSocket, this->airplaneSocket, std::string("Ground Control"), std::string("In-flight Airplane"));
+
+			// 4. Start new airplane relay — GC relay is already running to catch its first message.
+			this->airplaneThread = std::thread(&Server::RelayLoop, this, this->airplaneSocket, this->groundControlSocket, std::string("In-flight Airplane"), std::string("Ground Control"));
+
+			// Also restart the GC relay thread's destination reference by
+			// notifying it of the new airplane socket via a fresh GC thread.
+			// We join the old GC thread first, then restart it pointing at
+			// the new airplane socket.
+			if (this->groundControlThread.joinable()) {
+				// Signal GC relay to exit by closing its destination (old airplane socket).
+				// It has already been closed by the airplane relay on disconnect.
+				this->groundControlThread.join();
+			};
+
+			this->groundControlThread = std::thread(&Server::RelayLoop, this, this->groundControlSocket, this->airplaneSocket, std::string("Ground Control"), std::string("In-flight Airplane"));
+		};
+	};
+
 	// We block the main thread until both relay threads have exited.
 	if (this->groundControlThread.joinable()) {
 		this->groundControlThread.join();
