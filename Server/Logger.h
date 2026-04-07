@@ -30,7 +30,7 @@ private:
 	// This logger thread functions empties the queue and writes to a file.
 	void LoggerThreadFunc();
 
-	// Returns elasped ms since Start() was called.
+	// Returns elapsed ms since Start() was called.
 	unsigned long long ElapsedMs() const;
 
 	// Builds the timestamp prefix string: "[00123ms]".
@@ -70,7 +70,7 @@ public:
 	void LogSecurityException(const std::string& clientName, const std::string& reason);
 
 	// Logs a relayed data packet header.
-	void LogPacket(const std::string& source, const std::string& destination, unsigned int flightID, unsigned int messageType, unsigned int length, uint32_t timeStamp);
+	void LogPacket(const std::string& source, const std::string& destination, unsigned int flightID, unsigned int messageType, unsigned int length, uint32_t timeStamp, const char* body);
 
 	// Logs a client disconnect event.
 	void LogDisconnect(const std::string& clientName);

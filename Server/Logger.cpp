@@ -140,11 +140,32 @@ unsigned long long Logger::ElapsedMs() const {
 };
 
 std::string Logger::TimestampPrefix() const {
+	auto now = std::chrono::system_clock::now();
+
+	std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
+	std::tm parts;
+
+	// Using localtime_s on windows for thread safety.
+	localtime_s(&parts, &now_c);
+
 	std::ostringstream oss;
+
+	oss << "[" << std::setfill('0')
+		<< std::setw(2) << parts.tm_mday << "/"
+		<< std::setw(2) << (parts.tm_mon + 1) << "/"
+		<< (parts.tm_year + 1900) << " "
+		<< std::setw(2) << parts.tm_hour << ":"
+		<< std::setw(2) << parts.tm_min << ":"
+		<< std::setw(2) << parts.tm_sec << "]";
+
+	return oss.str();
+
+	/*std::ostringstream oss;
 
 	oss << "[" << std::setw(7) << std::setfill('0') << this->ElapsedMs() << "ms]";
 
-	return oss.str();
+	return oss.str();*/
 };
 
 void Logger::LogStateTransition(const std::string& entity, const std::string& fromState, const std::string& toState) {
@@ -188,7 +209,7 @@ void Logger::LogSecurityException(const std::string& clientName, const std::stri
 	Log(oss.str());
 };
 
-void Logger::LogPacket(const std::string& source, const std::string& destination, unsigned int flightID, unsigned int messageType, unsigned int length, uint32_t timeStamp) {
+void Logger::LogPacket(const std::string& source, const std::string& destination, unsigned int flightID, unsigned int messageType, unsigned int length, uint32_t timeStamp, const char* body) {
 	std::ostringstream oss;
 
 	oss << TimestampPrefix()
@@ -200,7 +221,20 @@ void Logger::LogPacket(const std::string& source, const std::string& destination
 		<< " | Length: " << length
 		<< " | TimeStamp: " << timeStamp;
 
-	Log(oss.str());
+	// Log the body if it exists
+	if (length > 0 && body != nullptr) {
+		oss << " | Body: " << ToHexString(body, length);
+	}
+
+	else if (length > 0) {
+		oss << " | Body: [DATA MISSING]";
+	}
+
+	else {
+		oss << " | Body: [EMPTY]";
+	};
+
+	this->Log(oss.str());
 };
 
 void Logger::LogDisconnect(const std::string& clientName) {
@@ -211,4 +245,15 @@ void Logger::LogDisconnect(const std::string& clientName) {
 		<< clientName << " disconnected.";
 
 	Log(oss.str());
+};
+
+// Helper to convert raw bytes to Hex
+std::string ToHexString(const char* data, unsigned int length) {
+	std::ostringstream oss;
+
+	for (unsigned int i = 0; i < length; ++i) {
+		oss << std::hex << std::setw(2) << std::setfill('0') << (static_cast<int>(data[i]) & 0xFF) << " ";
+	};
+
+	return oss.str();
 };
