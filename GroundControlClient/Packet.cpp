@@ -195,3 +195,9 @@ unsigned int Packet::GetBodyLength() {
 unsigned int Packet::GetFlightID() {
 	return this->pktHead.FlightID;
 };
+
+
+// Provides access to the packet's header information without allowing modification, which is used for logging and auditing purposes.
+const PacketHeader& Packet::GetHeader() const {
+	return this->pktHead;
+}
