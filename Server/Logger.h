@@ -36,6 +36,8 @@ private:
 	// Builds the timestamp prefix string: "[00123ms]".
 	std::string TimestampPrefix() const;
 
+	std::string ToHexString(const char* data, unsigned int length);
+
 public:
 	Logger();
 

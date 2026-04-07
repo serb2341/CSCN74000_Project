@@ -209,7 +209,7 @@ void Logger::LogSecurityException(const std::string& clientName, const std::stri
 	Log(oss.str());
 };
 
-void Logger::LogPacket(const std::string& source, const std::string& destination, unsigned int flightID, unsigned int messageType, unsigned int length, uint32_t timeStamp, const char* body) {
+void Logger::LogPacket(const std::string& source, const std::string& destination, unsigned int flightID, unsigned int messageType, unsigned int length, uint32_t timeStamp, const char* buffer) {
 	std::ostringstream oss;
 
 	oss << TimestampPrefix()
@@ -219,19 +219,32 @@ void Logger::LogPacket(const std::string& source, const std::string& destination
 		<< " | FlightID: " << std::dec << flightID
 		<< " | MsgType: " << messageType
 		<< " | Length: " << length
-		<< " | TimeStamp: " << timeStamp;
+		<< " | TimeStamp: " << timeStamp
+		<< " | Body: ";
 
 	// Log the body if it exists
-	if (length > 0 && body != nullptr) {
-		oss << " | Body: " << ToHexString(body, length);
+	if (length > 0 && buffer != nullptr) {
+		oss.write(buffer, length);
 	}
 
 	else if (length > 0) {
-		oss << " | Body: [DATA MISSING]";
+		oss << "[DATA MISSING]";
 	}
 
 	else {
-		oss << " | Body: [EMPTY]";
+		oss << "[EMPTY]";
+	};
+
+
+	// Log the CRC32.
+	if (buffer != nullptr) {
+		uint32_t CRCvalue;
+
+		std::memcpy(&CRCvalue, buffer + length, sizeof(uint32_t));
+
+		oss << " | CRC32: "
+			<< "0x" << std::uppercase << std::hex
+			<< std::setw(8) << std::setfill('0') << CRCvalue;
 	};
 
 	this->Log(oss.str());
@@ -248,7 +261,7 @@ void Logger::LogDisconnect(const std::string& clientName) {
 };
 
 // Helper to convert raw bytes to Hex
-std::string ToHexString(const char* data, unsigned int length) {
+std::string Logger::ToHexString(const char* data, unsigned int length) {
 	std::ostringstream oss;
 
 	for (unsigned int i = 0; i < length; ++i) {

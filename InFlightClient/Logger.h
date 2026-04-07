@@ -40,7 +40,11 @@ public:
         
         if (logFile.is_open())
         {
-            logFile << "[" << timestamp << "] " << message << std::endl;
+            logFile << "[" << timestamp << "] ";
+
+            logFile.write(message, size);
+
+            logFile << std::endl;
         }
 
     }

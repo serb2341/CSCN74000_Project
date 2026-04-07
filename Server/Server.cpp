@@ -523,7 +523,7 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 			pktHeader.MessageType,
 			pktHeader.Length,
 			pktHeader.TimeStamp,
-			recvBuffer);
+			recvBuffer + sizeof(PacketHeader));
 
 
 		// ---- Phase 4: TRANSMITTING — forward ----
