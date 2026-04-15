@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClCompile Include="..\Server\CRC32.cpp" />
     <ClCompile Include="InFlightClientSource.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Packet.cpp" />
   </ItemGroup>

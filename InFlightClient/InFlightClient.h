@@ -29,9 +29,10 @@ private:
 
 	Logger logger{ "inflightclient_log.txt" };
 
-	// Reads shared secret from a key=value .txt config file.
-	// Returns true if the SECRET key is found and loaded.
-	bool LoadConfig(const std::string& configPath);
+public:
+	InFlightClient();
+
+	~InFlightClient();
 
 	// Initializes the WinSock Library (WSAStartup).
 	bool InitializeWinsock();
@@ -44,28 +45,27 @@ private:
 	// On failure the caller should close the socket and not start a relay thread.
 	bool PerformHandshake(SOCKET clientSocket, const std::string& clientName);
 
-	// Computes the expected signature: CRC-32 over (sharedSecret bytes + randomNumber bytes).
-	uint32_t ComputeSignature(uint32_t randomNumber) const;
-
-	// Validates packet structure and CRC-32 integrity.
-	// buffer    - pointer to the full assembled packet (Header + Body + CRC tail)
-	// totalSize - total byte count of the assembled packet
-	// Returns true if both structural and CRC checks pass.
-	bool ValidatePacket(const char* buffer, unsigned int totalSize) const;
-
-	// Safely closes a SOCKET handle and resets it to INVALID_SOCKET.
-	void CloseSocket(SOCKET* sock);
-
 	// Recieves messages
 	void receiveMessage();
 
 	// Sends messages
 	void sendMessage(int messageType, const char* message, unsigned int size);
 
-public:
-	InFlightClient();
+	// Reads shared secret from a key=value .txt config file.
+	// Returns true if the SECRET key is found and loaded.
+	bool LoadConfig(const std::string& configPath);
 
-	~InFlightClient();
+	// Computes the expected signature: CRC-32 over (sharedSecret bytes + randomNumber bytes).
+	uint32_t ComputeSignature(uint32_t randomNumber) const;
+
+	// Safely closes a SOCKET handle and resets it to INVALID_SOCKET.
+	void CloseSocket(SOCKET* sock);
+
+	// Validates packet structure and CRC-32 integrity.
+	// buffer    - pointer to the full assembled packet (Header + Body + CRC tail)
+	// totalSize - total byte count of the assembled packet
+	// Returns true if both structural and CRC checks pass.
+	bool ValidatePacket(const char* buffer, unsigned int totalSize) const;
 
 	// This function is used to initialize Winsock and Create the socket.
 	// Returns true on success.
