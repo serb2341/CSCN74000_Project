@@ -290,3 +290,60 @@ TEST(InFlightClientTests, CreateSocket_ReturnsBool)
     // Act / Assert
     EXPECT_NO_THROW(client.CreateSocket());
 }
+
+// ======================================================
+// LoadConfig Tests
+// ======================================================
+
+TEST_F(InFlightClientTest, LoadConfig_ValidFile_ReturnsTrue)
+{
+    // Arrange
+    std::ofstream file("config_test.txt");
+    file << "SECRET=testsecretkey";
+    file.close();
+
+    // Act
+    bool result = client.LoadConfig("config_test.txt");
+
+    // Assert
+    EXPECT_TRUE(result);
+}
+
+TEST_F(InFlightClientTest, LoadConfig_FileDoesNotExist_ReturnsFalse)
+{
+    // Act
+    bool result = client.LoadConfig("missing_test.txt");
+
+    // Assert
+    EXPECT_FALSE(result);
+}
+
+TEST_F(InFlightClientTest, LoadConfig_SecretMissing_ReturnsFalse)
+{
+    // Arrange
+    std::ofstream file("config_bad.txt");
+    file << "PORT=54000";
+    file.close();
+
+    // Act
+    bool result = client.LoadConfig("config_bad.txt");
+
+    // Assert
+    EXPECT_FALSE(result);
+}
+
+TEST_F(InFlightClientTest, LoadConfig_IgnoresCommentsAndBlankLines_ReturnsTrue)
+{
+    // Arrange
+    std::ofstream file("config_test.txt");
+    file << "# Comment line\n";
+    file << "\n";
+    file << "SECRET=testabc123\n";
+    file.close();
+
+    // Act
+    bool result = client.LoadConfig("config_test.txt");
+
+    // Assert
+    EXPECT_TRUE(result);
+}
