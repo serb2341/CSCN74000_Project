@@ -24,8 +24,6 @@ private:
 
 	char* txBuffer;
 
-	uint32_t CalculateCRC() const;
-
 public:
 	Packet();
 
@@ -36,7 +34,7 @@ public:
 	Packet(const Packet& pkt);
 
 	Packet& operator=(const Packet& pkt);
-
+	uint32_t CalculateCRC() const;
 	void SetFlightID(unsigned int value);
 	void SetMessageType(unsigned int value);
 	void SetTimeStamp(uint32_t value);
