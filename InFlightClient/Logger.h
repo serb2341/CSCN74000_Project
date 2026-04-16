@@ -6,46 +6,22 @@
 #include <fstream>
 #include <cstdint>
 
+
+#pragma once
+#include <string>
+#include <fstream>
+#include <ctime>
+#include "Packet.h"
+
+
 class Logger {
 private:
     std::ofstream logFile;
 public:
-    Logger(const std::string& filename)
-    {
-        logFile.open(filename, std::ios::app);
+    Logger(const std::string& filename);
 
-        if (!logFile.is_open())
-        {
-            std::cerr << "[Logger] Failed to open log file.\n";
-        }
-    }
+    ~Logger();
+    
 
-    ~Logger()
-    {
-        if (logFile.is_open())
-        {
-            logFile.close();
-        }
-    }
-
-    void Log(const char* message, unsigned int size)
-    {
-        std::time_t now = std::time(nullptr);
-        char timeStr[26];
-        ctime_s(timeStr, sizeof(timeStr), &now);
-
-        // Remove newline from ctime
-        std::string timestamp(timeStr);
-        timestamp.pop_back();
-        
-        if (logFile.is_open())
-        {
-            logFile << "[" << timestamp << "] ";
-
-            logFile.write(message, size);
-
-            logFile << std::endl;
-        }
-
-    }
+    void Log(const char* message, unsigned int size);
 };
