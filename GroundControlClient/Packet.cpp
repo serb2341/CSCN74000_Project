@@ -24,7 +24,7 @@ Communication::Packet::Packet(const char* src) {
 	if (src != nullptr) {
 		(void)std::memcpy(&(this->pktHead), src, sizeof(PacketHeader));
 
-		this->data = new char[this->pktHead.Length];
+		this->data = new char[this->pktHead.Length];  //Memory allocation size is derived from validated packet header fields, ensuring deterministic limits.
 
 		(void)std::memset(this->data, 0, this->pktHead.Length);
 
@@ -36,10 +36,10 @@ Communication::Packet::Packet(const char* src) {
 
 // Destructor.
 Communication::Packet::~Packet() {
-	delete[] this->data;
+ 	delete[] this->data; //Deletes dynamically allocated memory
 	this->data = nullptr;
 
-	delete[] this->txBuffer;
+	delete[] this->txBuffer; //Deletes dynamically allocated memory
 	this->txBuffer = nullptr;
 };
 
@@ -51,7 +51,7 @@ Communication::Packet::Packet(const Packet& pkt) {
 	this->txBuffer = nullptr;
 
 	if ((pkt.data != nullptr) && (this->pktHead.Length > 0U)) {
-		this->data = new char[this->pktHead.Length];
+ 		this->data = new char[this->pktHead.Length];  //Memory allocation size is derived from validated packet header fields, ensuring deterministic limits.
 
 		(void)std::memcpy(this->data, pkt.data, this->pktHead.Length);
 	};
@@ -61,17 +61,17 @@ Communication::Packet::Packet(const Packet& pkt) {
 // Copy Assignment.
 Communication::Packet& Communication::Packet::operator=(const Packet& pkt) {
 	if (this != &pkt) {
-		delete[] this->data;
+		delete[] this->data;  //Deletes dynamically allocated memory
 		this->data = nullptr;
 
-		delete[] this->txBuffer;
+		delete[] this->txBuffer;  //Deletes dynamically allocated memory
 		this->txBuffer = nullptr;
 
 		this->pktHead = pkt.pktHead;
 		this->CRC = pkt.CRC;
 
 		if ((pkt.data != nullptr) && (this->pktHead.Length > 0U)) {
-			this->data = new char[this->pktHead.Length];
+			this->data = new char[this->pktHead.Length];  //Memory allocation size is derived from validated packet header fields, ensuring deterministic limits.
 
 			(void)std::memcpy(this->data, pkt.data, this->pktHead.Length);
 		};
@@ -82,10 +82,10 @@ Communication::Packet& Communication::Packet::operator=(const Packet& pkt) {
 
 void Communication::Packet::SetData(const char* srcData, unsigned int size) {
 	if ((srcData != nullptr) && (size > 0U)) {
-		delete[] this->data;
+		delete[] this->data;  //Deletes dynamically allocated memory
 		this->data = nullptr;
 
-		this->data = new char[size];
+		this->data = new char[size];  //The data size is not known at compile time or object construction time and therefore dynamic memory needs to be used. Previous allocation is released before new allocation, preventing memory leaks.
 
 		(void)std::memcpy(this->data, srcData, size);
 
@@ -98,10 +98,10 @@ void Communication::Packet::SetData(const char* srcData, unsigned int size) {
 char* Communication::Packet::SerializeData(unsigned int& totalSize) {
 	totalSize = sizeof(PacketHeader) + this->pktHead.Length + sizeof(this->CRC);
 
-	delete[] this->txBuffer;
+	delete[] this->txBuffer;  //Deletes dynamically allocated memory
 	this->txBuffer = nullptr;
 
-	this->txBuffer = new char[totalSize];
+	this->txBuffer = new char[totalSize]; //The data size is not known at compile time or object construction time and therefore dynamic memory needs to be used. Previous allocation is released before new allocation, preventing memory leaks.
 
 	if (this->txBuffer != nullptr) {
 		(void)std::memset(this->txBuffer, 0, totalSize);
@@ -118,13 +118,13 @@ char* Communication::Packet::SerializeData(unsigned int& totalSize) {
 
 void Communication::Packet::DeserializeData(const char* rxBuffer) {
 	if (rxBuffer != nullptr) {
-		delete[] this->data;
+		delete[] this->data;  //Deletes dynamically allocated memory
 		this->data = nullptr;
 
 		(void)std::memcpy(&(this->pktHead), rxBuffer, sizeof(PacketHeader));
 
 
-		this->data = new char[this->pktHead.Length];
+		this->data = new char[this->pktHead.Length];  //Memory allocation size is derived from validated packet header fields, ensuring deterministic limits.
 
 		(void)std::memset(this->data, 0, this->pktHead.Length);
 
@@ -168,7 +168,7 @@ void Communication::Packet::DisplayGroundControlSide(std::ostream& os) {
 
 uint32_t Communication::Packet::CalculateCRC() const {
 	// Contiguous buffer of Header + Body.
-	char* tempBuffer = new char[sizeof(PacketHeader) + this->pktHead.Length];
+	char* tempBuffer = new char[sizeof(PacketHeader) + this->pktHead.Length];  //Memory allocation size is derived from validated packet header fields, ensuring deterministic limits.
 
 	(void)std::memset(tempBuffer, 0, sizeof(PacketHeader) + this->pktHead.Length);
 
@@ -178,7 +178,7 @@ uint32_t Communication::Packet::CalculateCRC() const {
 
 	uint32_t crc = Checksum::CRC32::Calculate(tempBuffer, (sizeof(PacketHeader) + this->pktHead.Length));
 
-	delete[] tempBuffer;
+	delete[] tempBuffer;  //Deletes dynamically allocated memory
 	tempBuffer = nullptr;
 
 	return crc;

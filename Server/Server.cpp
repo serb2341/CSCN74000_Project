@@ -480,7 +480,7 @@ void Networking::Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket
 		unsigned int totalPktSize = sizeof(Communication::PacketHeader) + pktHeader.Length + sizeof(uint32_t);
 
 		// Allocating full buffer and Assembling full packet.
-		char* recvBuffer = new char[totalPktSize];
+		char* recvBuffer = new char[totalPktSize];  // The data size is not known at compile time or object construction time and therefore dynamic memory needs to be used.Previous allocation is released before new allocation, preventing memory leaks.
 
 		// Copying the already received Header.
 		(void)std::memcpy(recvBuffer, &headerBuffer[0], sizeof(Communication::PacketHeader));
@@ -496,7 +496,7 @@ void Networking::Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket
 
 			(void)std::memset(recvBuffer, 0, totalPktSize);
 
-			delete[] recvBuffer;
+			delete[] recvBuffer;  //Deletes dynamically allocated memory
 			recvBuffer = nullptr;
 
 			break;
@@ -513,7 +513,7 @@ void Networking::Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket
 
 			(void)std::memset(recvBuffer, 0, totalPktSize);
 
-			delete[] recvBuffer;
+			delete[] recvBuffer;  //Deletes dynamically allocated memory
 			recvBuffer = nullptr;
 
 			break;
@@ -535,7 +535,7 @@ void Networking::Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket
 
 			(void)std::memset(recvBuffer, 0, totalPktSize);
 
-			delete[] recvBuffer;
+			delete[] recvBuffer;  //Deletes dynamically allocated memory
 			recvBuffer = nullptr;
 
 			// Back to RECEIVING — relay stays alive, just this packet is dropped.
@@ -567,7 +567,7 @@ void Networking::Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket
 
 			(void)std::memset(recvBuffer, 0, totalPktSize);
 
-			delete[] recvBuffer;
+			delete[] recvBuffer;  //Deletes dynamically allocated memory
 			recvBuffer = nullptr;
 
 			sourceDisconnected = false;   // DESTINATION gone, NOT source.
@@ -580,7 +580,7 @@ void Networking::Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket
 
 		(void)std::memset(recvBuffer, 0, totalPktSize);
 
-		delete[] recvBuffer;
+		delete[] recvBuffer;  //Deletes dynamically allocated memory
 		recvBuffer = nullptr;
 
 

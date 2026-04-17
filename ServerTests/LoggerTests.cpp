@@ -35,7 +35,7 @@ namespace ServerTests {
         // Start / Stop
         // --------------------------------------------------------
 
-        TEST_METHOD(Start_ValidPath_ReturnsTrue) {
+        TEST_METHOD(SVR_LOG_TEST_001_Start_ValidPath_ReturnsTrue) {
             Logging::Logger logger;
 
             const std::string path = "test_start.txt";
@@ -49,7 +49,7 @@ namespace ServerTests {
             Assert::IsTrue(result, L"Logger::Start must return true when given a valid file path.");
         };
 
-        TEST_METHOD(Start_CreatesFile) {
+        TEST_METHOD(SVR_LOG_TEST_002_Start_CreatesFile) {
             Logging::Logger logger;
 
             const std::string path = "test_creates.txt";
@@ -70,7 +70,7 @@ namespace ServerTests {
             Assert::IsTrue(exists, L"Logger::Start must create the log file on disk.");
         };
 
-        TEST_METHOD(Stop_CanBeCalledTwice_DoesNotCrash) {
+        TEST_METHOD(SVR_LOG_TEST_003_Stop_CanBeCalledTwice_DoesNotCrash) {
             Logging::Logger logger;
             const std::string path = "test_doublestop.txt";
 
@@ -88,7 +88,7 @@ namespace ServerTests {
         // Log — entries written to file
         // --------------------------------------------------------
 
-        TEST_METHOD(Log_EntryAppearsInFile) {
+        TEST_METHOD(SVR_LOG_TEST_004_Log_EntryAppearsInFile) {
             Logging::Logger logger;
 
             const std::string path = "test_entry.txt";
@@ -109,7 +109,7 @@ namespace ServerTests {
             Assert::IsTrue(content.find("TEST_ENTRY_12345") != std::string::npos, L"A logged entry must appear in the output file.");
         };
 
-        TEST_METHOD(Log_MultipleEntries_AllAppearInFile) {
+        TEST_METHOD(SVR_LOG_TEST_005_Log_MultipleEntries_AllAppearInFile) {
             Logging::Logger logger;
 
             const std::string path = "test_multi.txt";
@@ -133,7 +133,7 @@ namespace ServerTests {
             Assert::IsTrue(content.find("ENTRY_THREE") != std::string::npos, L"ENTRY_THREE must be in log.");
         };
 
-        TEST_METHOD(Log_EntriesWrittenInOrder) {
+        TEST_METHOD(SVR_LOG_TEST_006_Log_EntriesWrittenInOrder) {
             Logging::Logger logger;
 
             const std::string path = "test_order.txt";
@@ -164,7 +164,7 @@ namespace ServerTests {
         // Formatting helpers — verify fields appear in output
         // --------------------------------------------------------
 
-        TEST_METHOD(LogStateTransition_FieldsAppearInFile) {
+        TEST_METHOD(SVR_LOG_TEST_007_LogStateTransition_FieldsAppearInFile) {
             Logging::Logger logger;
 
             const std::string path = "test_state.txt";
@@ -186,7 +186,7 @@ namespace ServerTests {
             Assert::IsTrue(content.find("SERVER") != std::string::npos, L"Entity name must appear.");
         };
 
-        TEST_METHOD(LogHandshake_FieldsAppearInFile) {
+        TEST_METHOD(SVR_LOG_TEST_008_LogHandshake_FieldsAppearInFile) {
             Logging::Logger logger;
 
             const std::string path = "test_handshake.txt";
@@ -208,7 +208,7 @@ namespace ServerTests {
             Assert::IsTrue(content.find("DEADBEEF") != std::string::npos, L"Random value (hex) must appear.");
         };
 
-        TEST_METHOD(LogSecurityException_FieldsAppearInFile) {
+        TEST_METHOD(SVR_LOG_TEST_009_LogSecurityException_FieldsAppearInFile) {
             Logging::Logger logger;
 
             const std::string path = "test_security.txt";
@@ -229,7 +229,7 @@ namespace ServerTests {
             Assert::IsTrue(content.find("CRC-32") != std::string::npos, L"Reason must appear.");
         };
 
-        TEST_METHOD(LogPacket_AllFieldsAppearInFile) {
+        TEST_METHOD(SVR_LOG_TEST_010_LogPacket_AllFieldsAppearInFile) {
             Logging::Logger logger;
 
             const std::string path = "test_packet.txt";
@@ -250,7 +250,7 @@ namespace ServerTests {
             Assert::IsTrue(content.find("Ground Control") != std::string::npos, L"Destination must appear.");
         };
 
-        TEST_METHOD(LogDisconnect_FieldsAppearInFile) {
+        TEST_METHOD(SVR_LOG_TEST_011_LogDisconnect_FieldsAppearInFile) {
             Logging::Logger logger;
 
             const std::string path = "test_disconnect.txt";
@@ -274,7 +274,7 @@ namespace ServerTests {
         // Non-blocking guarantee (US-41)
         // --------------------------------------------------------
 
-        TEST_METHOD(Log_DoesNotBlockCaller) {
+        TEST_METHOD(SVR_LOG_TEST_012_Log_DoesNotBlockCaller) {
             // The relay thread must not wait for file I/O.
             // Log() should return in well under 10ms even with 100 entries.
             Logging::Logger logger;
