@@ -882,39 +882,30 @@ void Networking::Server::Run() {
 
 void Networking::Server::Shutdown() {
 	bool expected = false;
+	bool shouldExecute = this->shutdownStarted.compare_exchange_strong(expected, true);
 
-	if (!this->shutdownStarted.compare_exchange_strong(expected, true)) {
-		return;
+	if (shouldExecute) {
+		std::lock_guard<std::mutex> lock(this->shutdownMutex);
+
+		this->isRunning = false;
+
+		// Close sockets
+		this->CloseSocket(&(this->listeningSocket));
+		this->CloseSocket(&(this->groundControlSocket));
+		this->CloseSocket(&(this->airplaneSocket));
+
+		this->logger.Stop();
+
+		if (this->winsockInitialized) {
+			(void)WSACleanup();
+
+			this->winsockInitialized = false;
+		};
+
+		std::cout << "[Server] Shutdown complete." << std::endl;
 	};
 
-	std::lock_guard<std::mutex> lock(this->shutdownMutex);
-
-	this->isRunning = false;
-
-	// Here we are closing all the sockets.
-	this->CloseSocket(&(this->listeningSocket));
-	this->CloseSocket(&(this->groundControlSocket));
-	this->CloseSocket(&(this->airplaneSocket));
-
-	/*const std::thread::id currentId = std::this_thread::get_id();
-
-	if (this->groundControlThread.joinable() && (this->groundControlThread.get_id() != currentId)) {
-		this->groundControlThread.join();
-	};
-
-	if (this->airplaneThread.joinable() && (this->airplaneThread.get_id() != currentId)) {
-		this->airplaneThread.join();
-	};*/
-
-	this->logger.Stop();
-
-	if (this->winsockInitialized) {
-		(void)WSACleanup();
-
-		this->winsockInitialized = false;
-	};
-
-	std::cout << "[Server] Shutdown complete." << std::endl;
+	return;
 };
 
 // Maps ServerState enum to a readable string for console output.
