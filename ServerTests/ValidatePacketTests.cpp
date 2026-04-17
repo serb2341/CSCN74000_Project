@@ -48,7 +48,7 @@ namespace ServerTests
         // Valid packets
         // --------------------------------------------------------
 
-        TEST_METHOD(ValidPacket_WithBody_ReturnsTrue) {
+        TEST_METHOD(SVR_VAL_TEST_001_ValidPacket_WithBody_ReturnsTrue) {
             Networking::Server server;
 
             const char body[] = "Hello GC";
@@ -68,7 +68,7 @@ namespace ServerTests
             Assert::IsTrue(result, L"A correctly formed packet with valid CRC-32 must pass validation.");
         };
 
-        TEST_METHOD(ValidPacket_EmptyBody_ReturnsTrue) {
+        TEST_METHOD(SVR_VAL_TEST_002_ValidPacket_EmptyBody_ReturnsTrue) {
             Networking::Server server;
 
             unsigned int totalSize = 0U;
@@ -85,7 +85,7 @@ namespace ServerTests
             Assert::IsTrue(result, L"A packet with zero-length body and valid CRC-32 must pass validation.");
         };
 
-        TEST_METHOD(ValidPacket_LargeBody_ReturnsTrue) {
+        TEST_METHOD(SVR_VAL_TEST_003_ValidPacket_LargeBody_ReturnsTrue) {
             Networking::Server server;
 
             const unsigned int bodyLen = 1024U;
@@ -117,7 +117,7 @@ namespace ServerTests
         // Structural failures
         // --------------------------------------------------------
 
-        TEST_METHOD(TooSmall_BelowMinimumSize_ReturnsFalse) {
+        TEST_METHOD(SVR_VAL_TEST_004_TooSmall_BelowMinimumSize_ReturnsFalse) {
             Networking::Server server;
 
             // Anything smaller than sizeof(PacketHeader) + sizeof(CRC) is invalid.
@@ -128,7 +128,7 @@ namespace ServerTests
             Assert::IsFalse(result, L"A buffer smaller than the minimum packet size must fail validation.");
         };
 
-        TEST_METHOD(StructuralMismatch_LengthFieldTooLarge_ReturnsFalse) {
+        TEST_METHOD(SVR_VAL_TEST_005_StructuralMismatch_LengthFieldTooLarge_ReturnsFalse) {
             Networking::Server server;
 
             // Build a packet where hdr.Length claims more bytes than we actually have.
@@ -154,7 +154,7 @@ namespace ServerTests
             Assert::IsFalse(result, L"A packet where declared Length exceeds actual buffer size must fail validation.");
         };
 
-        TEST_METHOD(StructuralMismatch_TotalSizeTooSmall_ReturnsFalse) {
+        TEST_METHOD(SVR_VAL_TEST_006_StructuralMismatch_TotalSizeTooSmall_ReturnsFalse) {
             Networking::Server server;
 
             const char body[] = "test body";
@@ -177,7 +177,7 @@ namespace ServerTests
          CRC-32 integrity failures
          --------------------------------------------------------*/
 
-        TEST_METHOD(CorruptedBody_ReturnsFalse) {
+        TEST_METHOD(SVR_VAL_TEST_007_CorruptedBody_ReturnsFalse) {
             Networking::Server server;
 
             const char body[] = "Original data";
@@ -198,7 +198,7 @@ namespace ServerTests
             Assert::IsFalse(result, L"A packet with a corrupted body byte must fail CRC-32 validation.");
         };
 
-        TEST_METHOD(CorruptedHeader_ReturnsFalse) {
+        TEST_METHOD(SVR_VAL_TEST_008_CorruptedHeader_ReturnsFalse) {
             Networking::Server server;
 
             const char body[] = "Test";
@@ -219,7 +219,7 @@ namespace ServerTests
             Assert::IsFalse(result, L"A packet with a corrupted header byte must fail CRC-32 validation.");
         };
 
-        TEST_METHOD(CorruptedCRCTail_ReturnsFalse) {
+        TEST_METHOD(SVR_VAL_TEST_009_CorruptedCRCTail_ReturnsFalse) {
             Networking::Server server;
 
             const char body[] = "Integrity";
@@ -241,7 +241,7 @@ namespace ServerTests
             Assert::IsFalse(result, L"A packet with a corrupted CRC tail must fail validation.");
         };
 
-        TEST_METHOD(ZeroCRC_WhenNonZeroExpected_ReturnsFalse) {
+        TEST_METHOD(SVR_VAL_TEST_010_ZeroCRC_WhenNonZeroExpected_ReturnsFalse) {
             Networking::Server server;
 
             const char body[] = "NonZeroCRC";
