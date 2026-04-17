@@ -21,6 +21,8 @@ Networking::Server::Server() {
 	this->airplaneConnected = false;
 
 	this->winsockInitialized = false;
+
+	this->shutdownStarted = false;
 };
 
 Networking::Server::~Server() {
@@ -879,6 +881,14 @@ void Networking::Server::Run() {
 };
 
 void Networking::Server::Shutdown() {
+	bool expected = false;
+
+	if (!this->shutdownStarted.compare_exchange_strong(expected, true)) {
+		return;
+	};
+
+	std::lock_guard<std::mutex> lock(this->shutdownMutex);
+
 	this->isRunning = false;
 
 	// Here we are closing all the sockets.
@@ -886,13 +896,15 @@ void Networking::Server::Shutdown() {
 	this->CloseSocket(&(this->groundControlSocket));
 	this->CloseSocket(&(this->airplaneSocket));
 
-	if (this->groundControlThread.joinable()) {
+	/*const std::thread::id currentId = std::this_thread::get_id();
+
+	if (this->groundControlThread.joinable() && (this->groundControlThread.get_id() != currentId)) {
 		this->groundControlThread.join();
 	};
 
-	if (this->airplaneThread.joinable()) {
+	if (this->airplaneThread.joinable() && (this->airplaneThread.get_id() != currentId)) {
 		this->airplaneThread.join();
-	};
+	};*/
 
 	this->logger.Stop();
 

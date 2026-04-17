@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ServerTests", "ServerTests\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InFlightClient-Test1", "InFlightClient-Test1\InFlightClient-Test1.vcxproj", "{DC391C02-A93D-422F-A834-4EE43F6D721A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ServerSystemTests", "ServerSystemTests\ServerSystemTests.vcxproj", "{BAD166B4-2326-4273-1812-9D0DFA5E26AC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -60,6 +62,14 @@ Global
 		{DC391C02-A93D-422F-A834-4EE43F6D721A}.Release|x64.Build.0 = Release|x64
 		{DC391C02-A93D-422F-A834-4EE43F6D721A}.Release|x86.ActiveCfg = Release|Win32
 		{DC391C02-A93D-422F-A834-4EE43F6D721A}.Release|x86.Build.0 = Release|Win32
+		{BAD166B4-2326-4273-1812-9D0DFA5E26AC}.Debug|x64.ActiveCfg = Debug|x64
+		{BAD166B4-2326-4273-1812-9D0DFA5E26AC}.Debug|x64.Build.0 = Debug|x64
+		{BAD166B4-2326-4273-1812-9D0DFA5E26AC}.Debug|x86.ActiveCfg = Debug|Win32
+		{BAD166B4-2326-4273-1812-9D0DFA5E26AC}.Debug|x86.Build.0 = Debug|Win32
+		{BAD166B4-2326-4273-1812-9D0DFA5E26AC}.Release|x64.ActiveCfg = Release|x64
+		{BAD166B4-2326-4273-1812-9D0DFA5E26AC}.Release|x64.Build.0 = Release|x64
+		{BAD166B4-2326-4273-1812-9D0DFA5E26AC}.Release|x86.ActiveCfg = Release|Win32
+		{BAD166B4-2326-4273-1812-9D0DFA5E26AC}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
