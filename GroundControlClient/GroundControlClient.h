@@ -19,8 +19,19 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
+
 namespace Client {
     class GroundControlClient {
+        friend class Test_Handshake_Integration;
+        friend class Test_PacketRelay_Integration;
+        friend class Test_BidirectionalExchange_Integration;
+        friend class Test_TelemetryPath_Integration;
+        friend class Test_Disconnection_Integration;
+        friend class Test_FlightID_Integration;
+        friend class Test_HandshakeThenData_Integration;
+
+
+
     private:
         SOCKET clientSocket;
         std::atomic<bool> isRunning;
