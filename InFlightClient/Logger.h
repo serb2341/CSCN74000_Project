@@ -21,7 +21,6 @@ public:
     Logger(const std::string& filename);
 
     ~Logger();
-    
 
     void Log(const char* message, unsigned int size);
 };

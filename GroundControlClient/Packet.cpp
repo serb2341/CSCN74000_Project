@@ -9,7 +9,7 @@ Packet::Packet() {
 
 	this->CRC = 0U;
 
-	std::memset(&(this->pktHead), 0, sizeof(PacketHeader));
+	(void)std::memset(&(this->pktHead), 0, sizeof(PacketHeader));
 };
 
 Packet::Packet(const char* src) {
@@ -19,18 +19,18 @@ Packet::Packet(const char* src) {
 
 	this->CRC = 0U;
 
-	std::memset(&(this->pktHead), 0, sizeof(PacketHeader));
+	(void)std::memset(&(this->pktHead), 0, sizeof(PacketHeader));
 
 	if (src != nullptr) {
-		std::memcpy(&(this->pktHead), src, sizeof(PacketHeader));
+		(void)std::memcpy(&(this->pktHead), src, sizeof(PacketHeader));
 
 		this->data = new char[this->pktHead.Length];
 
-		std::memset(this->data, 0, this->pktHead.Length);
+		(void)std::memset(this->data, 0, this->pktHead.Length);
 
-		std::memcpy(this->data, src + sizeof(PacketHeader), this->pktHead.Length);
+		std::memcpy(this->data, src + sizeof(PacketHeader), this->pktHead.Length); //-V2563
 
-		std::memcpy(&(this->CRC), src + sizeof(PacketHeader) + this->pktHead.Length, sizeof(this->CRC));
+		(void)std::memcpy(&(this->CRC), src + sizeof(PacketHeader) + this->pktHead.Length, sizeof(this->CRC)); //-V2563
 	};
 };
 
@@ -53,7 +53,7 @@ Packet::Packet(const Packet& pkt) {
 	if ((pkt.data != nullptr) && (this->pktHead.Length > 0U)) {
 		this->data = new char[this->pktHead.Length];
 
-		std::memcpy(this->data, pkt.data, this->pktHead.Length);
+		(void)std::memcpy(this->data, pkt.data, this->pktHead.Length);
 	};
 };
 
@@ -73,7 +73,7 @@ Packet& Packet::operator=(const Packet& pkt) {
 		if ((pkt.data != nullptr) && (this->pktHead.Length > 0U)) {
 			this->data = new char[this->pktHead.Length];
 
-			std::memcpy(this->data, pkt.data, this->pktHead.Length);
+			(void)std::memcpy(this->data, pkt.data, this->pktHead.Length);
 		};
 	};
 
@@ -87,7 +87,7 @@ void Packet::SetData(const char* srcData, unsigned int size) {
 
 		this->data = new char[size];
 
-		std::memcpy(this->data, srcData, size);
+		(void)std::memcpy(this->data, srcData, size);
 
 		this->pktHead.Length = size;
 
@@ -104,13 +104,13 @@ char* Packet::SerializeData(unsigned int& totalSize) {
 	this->txBuffer = new char[totalSize];
 
 	if (this->txBuffer != nullptr) {
-		std::memset(this->txBuffer, 0, totalSize);
+		(void)std::memset(this->txBuffer, 0, totalSize);
 
-		std::memcpy(this->txBuffer, &(this->pktHead), sizeof(PacketHeader));
+		(void)std::memcpy(this->txBuffer, &(this->pktHead), sizeof(PacketHeader));
 
-		std::memcpy(this->txBuffer + sizeof(PacketHeader), this->data, this->pktHead.Length);
+		(void)std::memcpy(this->txBuffer + sizeof(PacketHeader), this->data, this->pktHead.Length); //-V2563
 
-		std::memcpy(this->txBuffer + sizeof(PacketHeader) + this->pktHead.Length, &(this->CRC), sizeof(this->CRC));
+		(void)std::memcpy(this->txBuffer + sizeof(PacketHeader) + this->pktHead.Length, &(this->CRC), sizeof(this->CRC)); //-V2563
 	};
 
 	return this->txBuffer;
@@ -121,16 +121,16 @@ void Packet::DeserializeData(const char* rxBuffer) {
 		delete[] this->data;
 		this->data = nullptr;
 
-		std::memcpy(&(this->pktHead), rxBuffer, sizeof(PacketHeader));
+		(void)std::memcpy(&(this->pktHead), rxBuffer, sizeof(PacketHeader));
 
 
 		this->data = new char[this->pktHead.Length];
 
-		std::memset(this->data, 0, this->pktHead.Length);
+		(void)std::memset(this->data, 0, this->pktHead.Length);
 
-		std::memcpy(this->data, rxBuffer + sizeof(PacketHeader), this->pktHead.Length);
+		(void)std::memcpy(this->data, rxBuffer + sizeof(PacketHeader), this->pktHead.Length); //-V2563
 
-		std::memcpy(&(this->CRC), rxBuffer + sizeof(PacketHeader) + this->pktHead.Length, sizeof(this->CRC));
+		(void)std::memcpy(&(this->CRC), rxBuffer + sizeof(PacketHeader) + this->pktHead.Length, sizeof(this->CRC)); //-V2563
 	};
 };
 
@@ -151,7 +151,7 @@ void Packet::DisplayInFlightSide(std::ostream& os) {
 
 	os << "Ground Control | ";
 
-	os.write(this->data, this->pktHead.Length);
+	(void)os.write(this->data, this->pktHead.Length);
 
 	os << std::endl;
 };
@@ -161,7 +161,7 @@ void Packet::DisplayGroundControlSide(std::ostream& os) {
 
 	os << this->pktHead.FlightID << " | ";
 
-	os.write(this->data, this->pktHead.Length);
+	(void)os.write(this->data, this->pktHead.Length);
 
 	os << std::endl;
 };
@@ -170,13 +170,13 @@ uint32_t Packet::CalculateCRC() const {
 	// Contiguous buffer of Header + Body.
 	char* tempBuffer = new char[sizeof(PacketHeader) + this->pktHead.Length];
 
-	std::memset(tempBuffer, 0, sizeof(PacketHeader) + this->pktHead.Length);
+	(void)std::memset(tempBuffer, 0, sizeof(PacketHeader) + this->pktHead.Length);
 
-	std::memcpy(tempBuffer, &(this->pktHead), sizeof(PacketHeader));
+	(void)std::memcpy(tempBuffer, &(this->pktHead), sizeof(PacketHeader));
 
-	std::memcpy(tempBuffer + sizeof(PacketHeader), this->data, this->pktHead.Length);
+	(void)std::memcpy(tempBuffer + sizeof(PacketHeader), this->data, this->pktHead.Length); //-V2563
 
-	uint32_t crc = CRC32::Calculate(tempBuffer, (sizeof(PacketHeader) + this->pktHead.Length));
+	uint32_t crc = Checksum::CRC32::Calculate(tempBuffer, (sizeof(PacketHeader) + this->pktHead.Length));
 
 	delete[] tempBuffer;
 	tempBuffer = nullptr;

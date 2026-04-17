@@ -79,7 +79,7 @@ bool GroundControlClient::CreateSocket() {
     serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     // Initiate the connection request to the server
-    if (connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+    if (connect(clientSocket, reinterpret_cast<struct sockaddr*>(&serverAddr), sizeof(serverAddr)) == SOCKET_ERROR) {
         CloseSocket(&clientSocket);
         return false;
     }
@@ -108,7 +108,7 @@ void GroundControlClient::sendMessage(int messageType, const std::string& messag
     // Populate the packet header with the target flight ID and message type
     txPkt.SetFlightID(activeFlightID);
     txPkt.SetMessageType(messageType);
-    txPkt.SetData(message.c_str(), (unsigned int)message.size());
+    txPkt.SetData(message.c_str(), static_cast<unsigned int>(message.size()));
 
     // Convert the packet object into a contiguous stream of bytes for transmission
     unsigned int size = 0;
@@ -146,10 +146,10 @@ void GroundControlClient::receiveMessage() {
     char* buffer = new char[fullSize];
 
     // Copy the existing header data into the beginning of the newly allocated buffer
-    std::memcpy(buffer, headerBuffer, sizeof(PacketHeader));
+    (void)std::memcpy(buffer, headerBuffer, sizeof(PacketHeader));
 
     // Read the variable-length body and the trailing integrity check
-    bytes = recv(clientSocket, buffer + sizeof(PacketHeader), head.Length + sizeof(uint32_t), MSG_WAITALL);
+    bytes = recv(clientSocket, buffer + sizeof(PacketHeader), head.Length + sizeof(uint32_t), MSG_WAITALL); //-V2563
 
 
     // If recv returns 0, the connection was closed gracefully by the server/airplane
@@ -198,17 +198,17 @@ void GroundControlClient::receiveMessage() {
  */
 bool GroundControlClient::ValidatePacket(const char* buffer, unsigned int totalSize) const {
     PacketHeader head;
-    std::memcpy(&head, buffer, sizeof(PacketHeader));
+    (void)std::memcpy(&head, buffer, sizeof(PacketHeader));
 
     // Focus the CRC check on the header and body combined
     unsigned int payloadSize = sizeof(PacketHeader) + head.Length;
 
     // Re-calculate the checksum locally using the same algorithm as the sender
-    uint32_t computed = CRC32::Calculate(buffer, payloadSize);
+    uint32_t computed = Checksum::CRC32::Calculate(buffer, payloadSize);
 
     // Retrieve the checksum that was appended to the packet by the sender
     uint32_t received;
-    std::memcpy(&received, buffer + payloadSize, sizeof(uint32_t));
+    (void)std::memcpy(&received, buffer + payloadSize, sizeof(uint32_t)); //-V2563
 
     // Check for a match between local calculation and received value
     return (computed == received);
@@ -231,7 +231,7 @@ void GroundControlClient::Run() {
         // Allow user input only after a message has been successfully received
         std::cout << "Enter Reply: ";
         std::string reply;
-        std::getline(std::cin, reply);
+        (void)std::getline(std::cin, reply);
 
         // Forward the operator's response back to the airplane
         sendMessage(0, reply);
@@ -244,7 +244,7 @@ void GroundControlClient::Run() {
  */
 void GroundControlClient::CloseSocket(SOCKET* sock) {
     if (*sock != INVALID_SOCKET) {
-        closesocket(*sock);
+        (void)closesocket(*sock);
         *sock = INVALID_SOCKET;
     }
 }
@@ -256,7 +256,7 @@ void GroundControlClient::CloseSocket(SOCKET* sock) {
 void GroundControlClient::Shutdown() {
     isRunning = false;
     CloseSocket(&clientSocket);
-    WSACleanup();
+    (void)WSACleanup();
 }
 
 

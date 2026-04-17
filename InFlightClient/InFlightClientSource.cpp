@@ -111,9 +111,9 @@ bool InFlightClient::CreateSocket() {
 uint32_t InFlightClient::ComputeSignature(uint32_t randomNumber) const {
 	std::string payload = this->sharedSecret;
 
-	payload.append((const char*)(&randomNumber), sizeof(uint32_t));
+	(void)payload.append(reinterpret_cast<const char*>(&randomNumber), sizeof(uint32_t));
 
-	return CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
+	return Checksum::CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
 };
 
 bool InFlightClient::PerformHandshake(SOCKET clientSocket, const std::string& clientName) {
@@ -124,7 +124,7 @@ bool InFlightClient::PerformHandshake(SOCKET clientSocket, const std::string& cl
 	clientChallenge.Type = static_cast<uint32_t>(VerificationPacketType::CHALLENGE);
 	clientChallenge.Random = static_cast<uint32_t>(rand());
 	// CRC-32 covers Type + Random (8 bytes)
-	clientChallenge.CRC32 = CRC32::Calculate(reinterpret_cast<const char*>(&clientChallenge), sizeof(uint32_t) + sizeof(uint32_t));
+	clientChallenge.CRC32 = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientChallenge), sizeof(uint32_t) + sizeof(uint32_t));
 
 	int bytesSent = send(clientSocket, reinterpret_cast<const char*>(&clientChallenge), sizeof(ChallengePacket), 0);
 	if (bytesSent != sizeof(ChallengePacket)) {
@@ -152,7 +152,7 @@ bool InFlightClient::PerformHandshake(SOCKET clientSocket, const std::string& cl
 	}
 
 	// Validate CRC-32 (Type + Signature)
-	uint32_t expectedSvrResponseCRC = CRC32::Calculate(reinterpret_cast<const char*>(&serverResponse), sizeof(uint32_t) + sizeof(uint32_t));
+	uint32_t expectedSvrResponseCRC = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverResponse), sizeof(uint32_t) + sizeof(uint32_t));
 	if (serverResponse.CRC32 != expectedSvrResponseCRC) {
 		std::cerr << "[Handshake] Step 2: CRC-32 validation failed." << std::endl;
 		return false;
@@ -185,7 +185,7 @@ bool InFlightClient::PerformHandshake(SOCKET clientSocket, const std::string& cl
 	}
 
 	// Validate CRC-32
-	uint32_t expectedSvrChallengeCRC = CRC32::Calculate(reinterpret_cast<const char*>(&serverChallenge), sizeof(uint32_t) + sizeof(uint32_t));
+	uint32_t expectedSvrChallengeCRC = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverChallenge), sizeof(uint32_t) + sizeof(uint32_t));
 	if (serverChallenge.CRC32 != expectedSvrChallengeCRC) {
 		std::cerr << "[Handshake] Step 3: CRC-32 validation failed." << std::endl;
 		return false;
@@ -199,7 +199,7 @@ bool InFlightClient::PerformHandshake(SOCKET clientSocket, const std::string& cl
 	ResponsePacket clientResponse{};
 	clientResponse.Type = static_cast<uint32_t>(VerificationPacketType::RESPONSE);
 	clientResponse.Signature = ComputeSignature(serverChallenge.Random);
-	clientResponse.CRC32 = CRC32::Calculate(reinterpret_cast<const char*>(&clientResponse), sizeof(uint32_t) + sizeof(uint32_t));
+	clientResponse.CRC32 = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientResponse), sizeof(uint32_t) + sizeof(uint32_t));
 
 	bytesSent = send(clientSocket, reinterpret_cast<const char*>(&clientResponse), sizeof(ResponsePacket), 0);
 	if (bytesSent != sizeof(ResponsePacket)) {
@@ -229,7 +229,7 @@ bool InFlightClient::ValidatePacket(const char* buffer, unsigned int totalSize) 
 
 	// Extracting the header to read Length.
 	PacketHeader pktHeader{};
-	std::memcpy(&pktHeader, buffer, sizeof(PacketHeader));
+	(void)std::memcpy(&pktHeader, buffer, sizeof(PacketHeader));
 
 	// Verify the declared length matches the actual received size
 	unsigned int expectedSize = sizeof(PacketHeader) + pktHeader.Length + sizeof(uint32_t);
@@ -244,11 +244,11 @@ bool InFlightClient::ValidatePacket(const char* buffer, unsigned int totalSize) 
 	// CRC-32 is computed over Header + Body (everything except the CRC tail itself)
 	unsigned int payloadSize = sizeof(PacketHeader) + pktHeader.Length;
 
-	uint32_t computedCRC = CRC32::Calculate(buffer, payloadSize);
+	uint32_t computedCRC = Checksum::CRC32::Calculate(buffer, payloadSize);
 
 	// The CRC tail sits at the very end of the buffer
 	uint32_t receivedCRC = 0U;
-	std::memcpy(&receivedCRC, buffer + payloadSize, sizeof(uint32_t));
+	(void)std::memcpy(&receivedCRC, buffer + payloadSize, sizeof(uint32_t)); //-V2563
 
 	if (computedCRC != receivedCRC) {
 		std::cerr << "[Validation] CRC-32 mismatch. Packet may be corrupted or tampered with." << std::endl;
@@ -262,7 +262,7 @@ bool InFlightClient::ValidatePacket(const char* buffer, unsigned int totalSize) 
 
 void InFlightClient::CloseSocket(SOCKET* socketPtr) {
 	if (*socketPtr != INVALID_SOCKET) {
-		closesocket(*socketPtr);
+		(void)closesocket(*socketPtr);
 
 		*socketPtr = INVALID_SOCKET;
 
@@ -289,7 +289,7 @@ bool InFlightClient::Initialize(int flightID) {
 	if (!this->CreateSocket()) {
 		std::cerr << "[InFlightClient] Failed to create listen socket." << std::endl;
 
-		WSACleanup();
+		(void)WSACleanup();
 
 		return false;
 	};
@@ -358,17 +358,17 @@ void InFlightClient::receiveMessage()
 	// ---- Phase 2: Reading Length from header and allocating exact buffer. ----
 	PacketHeader pktHead{};
 
-	std::memcpy(&pktHead, headerBuffer, sizeof(pktHead));
+	(void)std::memcpy(&pktHead, headerBuffer, sizeof(pktHead));
 
 	char* recvBuffer = new char[sizeof(pktHead) + pktHead.Length + sizeof(uint32_t)];
 
-	std::memset(recvBuffer, 0, sizeof(pktHead) + pktHead.Length + sizeof(uint32_t));
+	(void)std::memset(recvBuffer, 0, sizeof(pktHead) + pktHead.Length + sizeof(uint32_t));
 
-	std::memcpy(recvBuffer, &pktHead, sizeof(pktHead));
+	(void)std::memcpy(recvBuffer, &pktHead, sizeof(pktHead));
 
 
 	// ---- Phase 3: Receiving Body + CRC tail. ----
-	bytesReceived = recv(this->clientSocket, recvBuffer + sizeof(pktHead), pktHead.Length + sizeof(uint32_t), MSG_WAITALL);
+	bytesReceived = recv(this->clientSocket, recvBuffer + sizeof(pktHead), pktHead.Length + sizeof(uint32_t), MSG_WAITALL); //-V2563
 
 	if (bytesReceived <= 0) {
 		std::cout << "[InFlightClient] Server disconnected during body recv." << std::endl;
@@ -395,7 +395,7 @@ void InFlightClient::receiveMessage()
 	if (!this->ValidatePacket(recvBuffer, sizeof(pktHead) + pktHead.Length + sizeof(uint32_t))) {
 		std::cout << "[Warning] Corrupted packet received! Dropping." << std::endl;
 
-		std::memset(recvBuffer, 0, sizeof(pktHead) + pktHead.Length + sizeof(uint32_t));
+		(void)std::memset(recvBuffer, 0, sizeof(pktHead) + pktHead.Length + sizeof(uint32_t));
 
 		delete[] recvBuffer;
 		recvBuffer = nullptr;
@@ -456,7 +456,7 @@ void InFlightClient::Run() {
 
 			std::streamsize size = file.tellg();
 
-			file.seekg(0, std::ios::beg);				// Moving the pointer back to beginning of the file.
+			(void)file.seekg(0, std::ios::beg);				// Moving the pointer back to beginning of the file.
 
 			std::string bodyHeading = "TELEMETRY|";
 
@@ -469,11 +469,11 @@ void InFlightClient::Run() {
 				continue;
 			};
 
-			std::memset(telBuffer, 0, (size + bodyHeading.length()));
+			(void)std::memset(telBuffer, 0, (size + bodyHeading.length()));
 
-			std::memcpy(telBuffer, bodyHeading.c_str(), bodyHeading.length());
+			(void)std::memcpy(telBuffer, bodyHeading.c_str(), bodyHeading.length());
 
-			if (file.read(telBuffer + bodyHeading.length(), size)) {
+			if (file.read(telBuffer + bodyHeading.length(), size)) { //-V2563
 				std::cout << "Sending telemetry...\n";
 
 				this->sendMessage(1, telBuffer, size);
@@ -525,7 +525,7 @@ void InFlightClient::Shutdown() {
 	// Here we are closing all the sockets.
 	this->CloseSocket(&(this->clientSocket));
 
-	WSACleanup();
+	(void)WSACleanup();
 
 	std::cout << "[InFlightClient] Shutdown complete." << std::endl;
 };

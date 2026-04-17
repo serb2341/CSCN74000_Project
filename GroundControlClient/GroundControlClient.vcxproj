@@ -134,8 +134,8 @@
     <ClCompile Include="Packet.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Server\CRC32.h" />
     <ClInclude Include="..\Server\VerificationPacket.h" />
+    <ClInclude Include="CRC32.h" />
     <ClInclude Include="GroundControlClient.h" />
     <ClInclude Include="Handshake.h" />
     <ClInclude Include="Logger.h" />
