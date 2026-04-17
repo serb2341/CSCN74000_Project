@@ -268,109 +268,13 @@ namespace ServerSystemTests
             fixture.StopServer();
         }
 
-        //// ============================================================
-        ////  ST-06: Server drops a structurally invalid packet.
-        ////
-        ////  Verifies US-16 requirement 4:
-        ////  "A packet that fails structural validation is not forwarded."
-        ////
-        ////  Strategy: same sentinel approach as ST-05.
-        ////  The malformed packet has a Length field that doesn't match
-        ////  the actual buffer size, causing a structural mismatch.
-        //// ============================================================
-        //TEST_METHOD(ST06_StructurallyInvalidPacket_Dropped_NotForwarded)
-        //{
-        //    TestServerFixture fixture;
-        //    fixture.StartServer();
-
-        //    MockClient groundControl(TEST_SECRET);
-        //    MockClient airplane(TEST_SECRET);
-
-        //    groundControl.Connect();
-        //    groundControl.PerformHandshake();
-        //    airplane.Connect();
-        //    airplane.PerformHandshake();
-
-        //    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        //    // ---- Send VALID packet 1 ----
-        //    const char valid1[] = "VALID1";
-        //    airplane.SendPacket(101U, 0U, valid1,
-        //        static_cast<unsigned int>(strlen(valid1)));
-
-        //    // ---- Build and send STRUCTURALLY INVALID packet ----
-        //    // Build a real packet but lie about Length in the header.
-        //    {
-        //        Communication::Packet pkt;
-        //        pkt.SetFlightID(101U);
-        //        pkt.SetMessageType(0U);
-        //        pkt.SetTimeStamp(1U);
-        //        const char body[] = "INVALID";
-        //        pkt.SetData(body, 7U);
-
-        //        unsigned int totalSize = 0U;
-        //        char* buf = pkt.SerializeData(totalSize);
-
-        //        char* badBuf = new char[totalSize];
-        //        std::memcpy(badBuf, buf, totalSize);
-
-        //        // Inflate Length field in the header so declared size >
-        //        // actual bytes, causing a structural mismatch on the server.
-        //        // Length sits at offset 9 in PacketHeader (after FlightID=4,
-        //        // MessageType=4, TimeStamp=1).
-        //        unsigned int fakeLength = 9999U;
-        //        std::memcpy(badBuf + 9, &fakeLength, sizeof(unsigned int));
-
-        //        // Note: the server reads header (13 bytes), then tries to
-        //        // recv 9999 + 4 bytes of body+CRC. The recv will block
-        //        // until timeout or disconnect. To avoid hanging the test,
-        //        // we instead corrupt totalSize by truncating the send —
-        //        // server receives a body shorter than the declared Length,
-        //        // causing the structural check to fail.
-        //        //
-        //        // Reset to a valid-looking but wrong length (body=10, reality=7).
-        //        unsigned int wrongLength = 10U;
-        //        std::memcpy(badBuf + 9, &wrongLength, sizeof(unsigned int));
-
-        //        // Send only the real totalSize bytes — server reads 13 header,
-        //        // then tries recv(10+4=14) but only 7+4=11 bytes follow.
-        //        // MSG_WAITALL will return fewer bytes than requested, failing
-        //        // the body recv check.
-        //        airplane.SendRaw(badBuf, totalSize);
-        //        delete[] badBuf;
-        //    }
-
-        //    // Give the server time to detect and drop the bad packet.
-        //    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-        //    // ---- Send SENTINEL ----
-        //    const char sentinel[] = "SENTINEL";
-        //    airplane.SendPacket(101U, 0U, sentinel,
-        //        static_cast<unsigned int>(strlen(sentinel)));
-
-        //    // ---- GC should receive VALID1 then SENTINEL ----
-        //    std::string body1, body2;
-        //    bool got1 = groundControl.ReceivePacket(body1, 2000U);
-        //    bool got2 = groundControl.ReceivePacket(body2, 2000U);
-
-        //    Assert::IsTrue(got1, L"ST-06: GC must receive the first valid packet.");
-        //    Assert::IsTrue(got2, L"ST-06: GC must receive the sentinel packet.");
-
-        //    Assert::AreEqual(std::string(valid1), body1, L"ST-06: First body must be VALID1.");
-        //    Assert::AreEqual(std::string(sentinel), body2, L"ST-06: Second body must be SENTINEL (invalid packet dropped).");
-
-        //    groundControl.Disconnect();
-        //    airplane.Disconnect();
-        //    fixture.StopServer();
-        //}
-
         // ============================================================
-        //  ST-07: Multiple packets relay correctly in sequence.
+        //  ST-06: Multiple packets relay correctly in sequence.
         //
         //  Verifies the relay loop handles multiple consecutive packets
         //  without losing or reordering them.
         // ============================================================
-        TEST_METHOD(ST07_MultiplePackets_RelayedInOrder)
+        TEST_METHOD(ST06_MultiplePackets_RelayedInOrder)
         {
             TestServerFixture fixture;
             fixture.StartServer();
@@ -431,6 +335,110 @@ namespace ServerSystemTests
                 Assert::AreEqual(sentBodies[i], receivedBodies[i],
                     L"ST-07: Each packet body must match what was sent, in order.");
             }
+
+            groundControl.Disconnect();
+            airplane.Disconnect();
+            fixture.StopServer();
+        }
+
+
+        // ============================================================
+        //  ST-07: Airplane sends a large telemetry file — Ground Control
+        //         receives it intact (correct size and content).
+        //
+        //  Replicates exactly what InFlightClient does in choice == 2:
+        //  - Reads telemetry.txt from disk in binary mode.
+        //  - Prepends "TELEMETRY|" to the body.
+        //  - Sends as ONE packet with MessageType = 1.
+        //  - GC must receive a body that is byte-for-byte identical.
+        //
+        //  PRECONDITION: telemetry.txt must exist in the test working
+        //  directory (same folder as the test .exe, usually
+        //  ServerSystemTests/x64/Debug/).
+        // ============================================================
+        TEST_METHOD(ST07_LargeTelemetryFile_RelayedIntact) {
+            // ---- Load telemetry.txt from disk ----
+            const std::string telemetryPath = "telemetry.txt";
+
+            std::ifstream file(telemetryPath, std::ios::binary | std::ios::ate);
+
+            Assert::IsTrue(file.is_open(), L"ST-08: telemetry.txt must exist in the test working directory.");
+
+            std::streamsize fileSize = file.tellg();
+            file.seekg(0, std::ios::beg);
+
+            Assert::IsTrue(fileSize > 0, L"ST-08: telemetry.txt must not be empty.");
+
+            // ---- Build the body exactly as InFlightClient does ----
+            // Body = "TELEMETRY|" + raw file bytes
+            const char prefix[] = "TELEMETRY|";
+            unsigned int      totalBodyLen = static_cast<unsigned int>(strlen(prefix))
+                + static_cast<unsigned int>(fileSize);
+
+            char* body = new char[totalBodyLen];
+            std::memset(body, 0, totalBodyLen);
+            std::memcpy(body, prefix, strlen(prefix));
+
+            bool readOk = static_cast<bool>(file.read(body + strlen(prefix), fileSize));
+            file.close();
+
+            Assert::IsTrue(readOk, L"ST-08: telemetry.txt must be readable in full.");
+
+            // ---- Start server and connect both clients ----
+            TestServerFixture fixture;
+            fixture.StartServer();
+
+            MockClient groundControl(TEST_SECRET);
+            MockClient airplane(TEST_SECRET);
+
+            groundControl.Connect();
+            groundControl.PerformHandshake();
+
+            airplane.Connect();
+            airplane.PerformHandshake();
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            // ---- GC receives on a separate thread ----
+            // ReceivePacket() uses two-phase recv internally — handles any size.
+            std::string     receivedBody;
+            std::atomic<bool> receiveComplete(false);
+
+            std::thread gcThread([&]()
+            {
+                // Use a generous timeout for large files.
+                receiveComplete = groundControl.ReceivePacket(receivedBody, 10000U);
+            });
+
+            // ---- Airplane sends the telemetry as one packet ----
+            bool sent = airplane.SendPacket(
+                101U,           // FlightID
+                1U,             // MessageType = 1 (telemetry, matches InFlightClient)
+                body,
+                totalBodyLen
+            );
+
+            Assert::IsTrue(sent, L"ST-08: Airplane must send the telemetry packet without error.");
+
+            gcThread.join();
+
+            // ---- Verify receipt ----
+            Assert::IsTrue(receiveComplete.load(), L"ST-08: Ground Control must receive the telemetry packet.");
+
+            // Size check
+            Assert::AreEqual(
+                static_cast<size_t>(totalBodyLen),
+                receivedBody.size(),
+                L"ST-08: Received body size must exactly match sent telemetry size.");
+
+            // Content check — byte-for-byte comparison
+            bool contentMatch = (std::memcmp(receivedBody.data(), body, totalBodyLen) == 0);
+
+            Assert::IsTrue(contentMatch, L"ST-08: Received telemetry content must be byte-for-byte identical to what was sent.");
+
+            // ---- Cleanup ----
+            delete[] body;
+            body = nullptr;
 
             groundControl.Disconnect();
             airplane.Disconnect();
