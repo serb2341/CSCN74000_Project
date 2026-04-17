@@ -13,23 +13,29 @@ Logger::~Logger() {
 // ============================================================
 
 bool Logger::Start(const std::string& logFilePath) {
+	bool isFileOpeningSuccessful = false;
+
 	this->file.open(logFilePath, std::ios::out | std::ios::app);
 
 	if (!this->file.is_open()) {
 		std::cerr << "[Logger] Failed to open log file: " << logFilePath << std::endl;
 
-		return false;
+		isFileOpeningSuccessful = false;
+	}
+
+	else {
+		this->startTime = std::chrono::steady_clock::now();
+
+		this->isRunning = true;
+
+		this->thread = std::thread(&Logger::LoggerThreadFunc, this);
+
+		std::cout << "[Logger] Started. Writing to: " << logFilePath << std::endl;
+
+		isFileOpeningSuccessful = true;
 	};
 
-	this->startTime = std::chrono::steady_clock::now();
-
-	this->isRunning = true;
-
-	this->thread = std::thread(&Logger::LoggerThreadFunc, this);
-
-	std::cout << "[Logger] Started. Writing to: " << logFilePath << std::endl;
-
-	return true;
+	return isFileOpeningSuccessful;
 };
 
 void Logger::Stop() {
@@ -47,7 +53,7 @@ void Logger::Stop() {
 	};
 	
 	if (this->file.is_open()) {
-		this->file.flush();
+		(void)this->file.flush();
 
 		this->file.close();
 	};
@@ -113,7 +119,7 @@ void Logger::LoggerThreadFunc() {
 			localQueue.pop();
 		};
 
-		this->file.flush();
+		(void)this->file.flush();
 
 		// Exit only after the queue is fully drained.
 		if (!this->isRunning) {
@@ -147,7 +153,7 @@ std::string Logger::TimestampPrefix() const {
 	std::tm parts;
 
 	// Using localtime_s on windows for thread safety.
-	localtime_s(&parts, &now_c);
+	(void)localtime_s(&parts, &now_c);
 
 	std::ostringstream oss;
 
@@ -224,7 +230,7 @@ void Logger::LogPacket(const std::string& source, const std::string& destination
 
 	// Log the body if it exists
 	if (length > 0 && buffer != nullptr) {
-		oss.write(buffer, length);
+		(void)oss.write(buffer, length);
 	}
 
 	else if (length > 0) {
@@ -240,7 +246,7 @@ void Logger::LogPacket(const std::string& source, const std::string& destination
 	if (buffer != nullptr) {
 		uint32_t CRCvalue;
 
-		std::memcpy(&CRCvalue, buffer + length, sizeof(uint32_t));
+		(void)std::memcpy(&CRCvalue, buffer + length, sizeof(uint32_t)); //-V2563
 
 		oss << " | CRC32: "
 			<< "0x" << std::uppercase << std::hex
@@ -265,7 +271,7 @@ std::string Logger::ToHexString(const char* data, unsigned int length) {
 	std::ostringstream oss;
 
 	for (unsigned int i = 0; i < length; ++i) {
-		oss << std::hex << std::setw(2) << std::setfill('0') << (static_cast<int>(data[i]) & 0xFF) << " ";
+		oss << std::hex << std::setw(2) << std::setfill('0') << (static_cast<int>(data[i]) & 0xFF) << " "; //-V2563
 	};
 
 	return oss.str();

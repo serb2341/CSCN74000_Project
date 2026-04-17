@@ -38,7 +38,7 @@ void Logger::Log(unsigned int src, unsigned int dest, const std::string& msg, co
     // Captures current system time for chronological tracking.
     std::time_t now = std::time(nullptr);
     char timeStr[26];
-    ctime_s(timeStr, sizeof(timeStr), &now);
+    (void)ctime_s(timeStr, sizeof(timeStr), &now);
 
     // Clean up the timestamp string by removing the trailing newline character.
     std::string ts(timeStr);
@@ -53,6 +53,6 @@ void Logger::Log(unsigned int src, unsigned int dest, const std::string& msg, co
             << " | Len: " << header.Length
             << " | TS: " << header.TimeStamp << "\n"
             << "MESSAGE: " << msg << "\n" << std::endl;
-        logFile.flush();
+        (void)logFile.flush();
     }
 }

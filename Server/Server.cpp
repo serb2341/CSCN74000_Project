@@ -169,7 +169,7 @@ bool Server::AcceptGroundControl() {
 	// Set a 1-second receive timeout so the relay loop can check airplaneConnected periodically and exit if airplane drops.
 	DWORD timeout = SOCKET_RECV_TIMEOUT_MS;
 
-	setsockopt(this->groundControlSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout), sizeof(timeout));
+	(void)setsockopt(this->groundControlSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout), sizeof(timeout));
 
 	this->groundControlConnected = true;
 
@@ -225,9 +225,9 @@ bool Server::AcceptAirplane() {
 uint32_t Server::ComputeSignature(uint32_t randomNumber) const {
 	std::string payload = this->sharedSecret;
 
-	payload.append((const char*)(&randomNumber), sizeof(uint32_t));
+	(void)payload.append(reinterpret_cast<const char*>(&randomNumber), sizeof(uint32_t));
 
-	return CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
+	return Checksum::CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
 };
 
 bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName) {
@@ -236,7 +236,7 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	// ----------------------------------------------------------------
 	ChallengePacket clientChallenge{};
 
-	int bytesReceived = recv(clientSocket, (char*)(&clientChallenge), sizeof(ChallengePacket), MSG_WAITALL);
+	int bytesReceived = recv(clientSocket, reinterpret_cast<char*>(&clientChallenge), sizeof(ChallengePacket), MSG_WAITALL);
 
 	if (bytesReceived != sizeof(ChallengePacket)) {
 		this->logger.LogSecurityException(clientName, "Step 1: Failed to receive challenge packet.");
@@ -256,7 +256,7 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	};
 
 	// Validate CRC-32 of the challenge packet (covers Type + Random only)
-	uint32_t expectedChallengeCRC = CRC32::Calculate(reinterpret_cast<const char*>(&clientChallenge), sizeof(uint32_t) + sizeof(uint32_t));			// Type + Random
+	uint32_t expectedChallengeCRC = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientChallenge), sizeof(uint32_t) + sizeof(uint32_t));			// Type + Random
 
 	if (clientChallenge.CRC32 != expectedChallengeCRC) {
 		this->logger.LogSecurityException(clientName, "Step 1: CRC-32 validation failed on challenge. Connection terminated.");
@@ -280,9 +280,9 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	serverResponse.Type = static_cast<uint32_t>(VerificationPacketType::RESPONSE);
 	serverResponse.Signature = this->ComputeSignature(clientChallenge.Random);
 
-	serverResponse.CRC32 = CRC32::Calculate((const char*)(&serverResponse), (sizeof(uint32_t) + sizeof(uint32_t)));
+	serverResponse.CRC32 = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverResponse), (sizeof(uint32_t) + sizeof(uint32_t)));
 
-	int bytesSent = send(clientSocket, (const char*)(&serverResponse), sizeof(ResponsePacket), 0);
+	int bytesSent = send(clientSocket, reinterpret_cast<const char*>(&serverResponse), sizeof(ResponsePacket), 0);
 
 	if (bytesSent != sizeof(ResponsePacket)) {
 		this->logger.LogSecurityException(clientName, "Step 2: Failed to send response.");
@@ -306,9 +306,9 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	serverChallenge.Random = static_cast<uint32_t>(rand());									// Server's random number.
 
 	// CRC-32 covers Type + Random
-	serverChallenge.CRC32 = CRC32::Calculate((const char*)(&serverChallenge), (sizeof(uint32_t) + sizeof(uint32_t)));		// Type + Random.
+	serverChallenge.CRC32 = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverChallenge), (sizeof(uint32_t) + sizeof(uint32_t)));		// Type + Random.
 
-	bytesSent = send(clientSocket, (const char*)(&serverChallenge), sizeof(ChallengePacket), 0);
+	bytesSent = send(clientSocket, reinterpret_cast<const char*>(&serverChallenge), sizeof(ChallengePacket), 0);
 
 	if (bytesSent != sizeof(ChallengePacket)) {
 		this->logger.LogSecurityException(clientName, "Step 3: Failed to send challenge.");
@@ -329,7 +329,7 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	// -------------------------------------------------------------------
 	ResponsePacket clientResponse{};
 
-	bytesReceived = recv(clientSocket, (char*)(&clientResponse), sizeof(ResponsePacket), MSG_WAITALL);
+	bytesReceived = recv(clientSocket, reinterpret_cast<char*>(&clientResponse), sizeof(ResponsePacket), MSG_WAITALL);
 
 	if (bytesReceived != sizeof(ResponsePacket)) {
 		this->logger.LogSecurityException(clientName, "Step 4: Failed to receive response packet.");
@@ -349,7 +349,7 @@ bool Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName
 	};
 
 	// Validate CRC-32 of the response packet (covers Type + Signature).
-	uint32_t expectedResponseCRC = CRC32::Calculate((const char*)(&clientResponse), (sizeof(uint32_t) + sizeof(uint32_t)));			// Type + Signature
+	uint32_t expectedResponseCRC = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientResponse), (sizeof(uint32_t) + sizeof(uint32_t)));			// Type + Signature
 
 	if (clientResponse.CRC32 != expectedResponseCRC) {
 		this->logger.LogSecurityException(clientName, "Step 4: CRC-32 validation failed on response. Connection terminated.");
@@ -397,7 +397,7 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		// First we start with only receiving the Header of the data packet.
 		char headerBuffer[sizeof(PacketHeader)];
 
-		std::memset(headerBuffer, 0, sizeof(PacketHeader));
+		(void)std::memset(headerBuffer, 0, sizeof(PacketHeader));
 
 		int bytesReceived = recv(sourceSocket, headerBuffer, sizeof(headerBuffer), MSG_WAITALL);		// The flag tells Winsock to not return until all header bytes are here.
 
@@ -450,7 +450,7 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		// We serialize the Header.
 		PacketHeader pktHeader{};
 
-		std::memcpy(&pktHeader, headerBuffer, sizeof(PacketHeader));
+		(void)std::memcpy(&pktHeader, headerBuffer, sizeof(PacketHeader));
 
 		// Initializing the total packet size.
 		unsigned int totalPktSize = sizeof(PacketHeader) + pktHeader.Length + sizeof(uint32_t);
@@ -459,9 +459,9 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		char* recvBuffer = new char[totalPktSize];
 
 		// Copying the already received Header.
-		std::memcpy(recvBuffer, headerBuffer, sizeof(PacketHeader));
+		(void)std::memcpy(recvBuffer, headerBuffer, sizeof(PacketHeader));
 
-		bytesReceived = recv(sourceSocket, recvBuffer + sizeof(PacketHeader), (static_cast<int>(totalPktSize) - static_cast<int>(sizeof(PacketHeader))), MSG_WAITALL);
+		bytesReceived = recv(sourceSocket, recvBuffer + sizeof(PacketHeader), (static_cast<int>(totalPktSize) - static_cast<int>(sizeof(PacketHeader))), MSG_WAITALL); //-V2563
 
 		if (bytesReceived == 0) {
 			std::cout << "[" << clientName << "] Client disconnected during body recv." << std::endl;
@@ -470,7 +470,7 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 
 			sourceDisconnected = true;   // Source gone or socket force-closed.
 
-			std::memset(recvBuffer, 0, totalPktSize);
+			(void)std::memset(recvBuffer, 0, totalPktSize);
 
 			delete[] recvBuffer;
 			recvBuffer = nullptr;
@@ -487,7 +487,7 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 				sourceDisconnected = true;   // Source gone or socket force-closed.
 			};
 
-			std::memset(recvBuffer, 0, totalPktSize);
+			(void)std::memset(recvBuffer, 0, totalPktSize);
 
 			delete[] recvBuffer;
 			recvBuffer = nullptr;
@@ -501,11 +501,11 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		Server::SetClientState(clientState, ClientState::PROCESSING, clientName);
 
 		// Validating the structure and CRC-32 before forwarding.
-		if (!this->ValidatePacket((const char*)recvBuffer, totalPktSize))
+		if (!this->ValidatePacket(reinterpret_cast<const char*>(recvBuffer), totalPktSize))
 		{
 			std::cerr << "[" << clientName << "] Packet failed validation. Dropping packet." << std::endl;
 
-			std::memset(recvBuffer, 0, totalPktSize);
+			(void)std::memset(recvBuffer, 0, totalPktSize);
 
 			delete[] recvBuffer;
 			recvBuffer = nullptr;
@@ -524,7 +524,7 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 			pktHeader.MessageType,
 			pktHeader.Length,
 			pktHeader.TimeStamp,
-			recvBuffer + sizeof(PacketHeader));
+			recvBuffer + sizeof(PacketHeader)); //-V2563
 
 
 		// ---- Phase 4: TRANSMITTING — forward ----
@@ -537,7 +537,7 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		if (bytesSent == SOCKET_ERROR) {
 			std::cerr << "[" << clientName << "] send() failed. Error: " << WSAGetLastError() << std::endl;
 
-			std::memset(recvBuffer, 0, totalPktSize);
+			(void)std::memset(recvBuffer, 0, totalPktSize);
 
 			delete[] recvBuffer;
 			recvBuffer = nullptr;
@@ -550,7 +550,7 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		std::cout << "[" << clientName << "] Relayed " << totalPktSize << " bytes (Body length: " << pktHeader.Length << ")." << std::endl;
 
 
-		std::memset(recvBuffer, 0, totalPktSize);
+		(void)std::memset(recvBuffer, 0, totalPktSize);
 
 		delete[] recvBuffer;
 		recvBuffer = nullptr;
@@ -575,7 +575,7 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 			this->airplaneConnected = false;
 
 			if (destinationSocket != INVALID_SOCKET) {
-				closesocket(destinationSocket);				// unblocks airplane relay's recv().
+				(void)closesocket(destinationSocket);				// unblocks airplane relay's recv().
 			};
 
 			this->groundControlSocket = INVALID_SOCKET;
@@ -601,7 +601,7 @@ void Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std:
 		this->airplaneConnected = false;
 
 		if (sourceSocket != INVALID_SOCKET) {
-			closesocket(sourceSocket);					 // triggers GC relay's send() to fail.
+			(void)closesocket(sourceSocket);					 // triggers GC relay's send() to fail.
 
 			this->airplaneSocket = INVALID_SOCKET;
 		};
@@ -626,7 +626,7 @@ bool Server::ValidatePacket(const char* buffer, unsigned int totalSize) const
 
 	// Extracting the header to read Length.
 	PacketHeader pktHeader{};
-	std::memcpy(&pktHeader, buffer, sizeof(PacketHeader));
+	(void)std::memcpy(&pktHeader, buffer, sizeof(PacketHeader));
 
 	// Verify the declared length matches the actual received size
 	unsigned int expectedSize = sizeof(PacketHeader) + pktHeader.Length + sizeof(uint32_t);
@@ -641,11 +641,11 @@ bool Server::ValidatePacket(const char* buffer, unsigned int totalSize) const
 	// CRC-32 is computed over Header + Body (everything except the CRC tail itself)
 	unsigned int payloadSize = sizeof(PacketHeader) + pktHeader.Length;
 
-	uint32_t computedCRC = CRC32::Calculate(buffer, payloadSize);
+	uint32_t computedCRC = Checksum::CRC32::Calculate(buffer, payloadSize);
 
 	// The CRC tail sits at the very end of the buffer
 	uint32_t receivedCRC = 0U;
-	std::memcpy(&receivedCRC, buffer + payloadSize, sizeof(uint32_t));
+	(void)std::memcpy(&receivedCRC, buffer + payloadSize, sizeof(uint32_t)); //-V2563
 
 	if (computedCRC != receivedCRC) {
 		std::cerr << "[Validation] CRC-32 mismatch. Packet may be corrupted or tampered with." << std::endl;
@@ -659,7 +659,7 @@ bool Server::ValidatePacket(const char* buffer, unsigned int totalSize) const
 
 void Server::CloseSocket(SOCKET* socketPtr) {
 	if (*socketPtr != INVALID_SOCKET) {
-		closesocket(*socketPtr);
+		(void)closesocket(*socketPtr);
 
 		*socketPtr = INVALID_SOCKET;
 
@@ -693,7 +693,7 @@ bool Server::Initialize() {
 	if (!this->CreateListeningSocket()) {
 		std::cerr << "[Server] Failed to create listen socket." << std::endl;
 
-		WSACleanup();
+		(void)WSACleanup();
 
 		return false;
 	};
@@ -842,7 +842,7 @@ void Server::Shutdown() {
 
 	this->logger.Stop();
 
-	WSACleanup();
+	(void)WSACleanup();
 
 	std::cout << "[Server] Shutdown complete." << std::endl;
 };
@@ -850,12 +850,12 @@ void Server::Shutdown() {
 // Maps ServerState enum to a readable string for console output.
 static const char* ServerStateToString(ServerState state) {
 	switch (state) {
-	case ServerState::INITIALIZING: return "INITIALIZING";
-	case ServerState::LISTENING:     return "LISTENING";
-	case ServerState::VERIFICATION:  return "VERIFICATION";
-	case ServerState::AUTHENTICATED: return "AUTHENTICATED";
-	case ServerState::DISCONNECTING: return "DISCONNECTING";
-	default:                         return "UNKNOWN";
+	case ServerState::INITIALIZING: return "INITIALIZING"; break;
+	case ServerState::LISTENING:     return "LISTENING"; break;
+	case ServerState::VERIFICATION:  return "VERIFICATION"; break;
+	case ServerState::AUTHENTICATED: return "AUTHENTICATED"; break;
+	case ServerState::DISCONNECTING: return "DISCONNECTING"; break;
+	default:                         return "UNKNOWN"; break;
 	};
 };
 
@@ -881,10 +881,10 @@ void Server::SetServerState(ServerState newState) {
 static const char* ClientStateToString(ClientState state) {
 	switch (state)
 	{
-	case ClientState::RECEIVING:    return "RECEIVING";
-	case ClientState::PROCESSING:   return "PROCESSING";
-	case ClientState::TRANSMITTING: return "TRANSMITTING";
-	default:                        return "UNKNOWN";
+	case ClientState::RECEIVING:    return "RECEIVING"; break;
+	case ClientState::PROCESSING:   return "PROCESSING"; break;
+	case ClientState::TRANSMITTING: return "TRANSMITTING"; break;
+	default:                        return "UNKNOWN"; break;
 	};
 };
 

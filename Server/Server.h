@@ -97,12 +97,6 @@ private:
 	// clientName is used only for console log messages.
 	void RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket, const std::string& clientName, const std::string& destinationName);
 
-	// Validates packet structure and CRC-32 integrity.
-	// buffer    - pointer to the full assembled packet (Header + Body + CRC tail)
-	// totalSize - total byte count of the assembled packet
-	// Returns true if both structural and CRC checks pass.
-	bool ValidatePacket(const char* buffer, unsigned int totalSize) const;
-
 	// Safely closes a SOCKET handle and resets it to INVALID_SOCKET.
 	void CloseSocket(SOCKET* sock);
 
@@ -130,6 +124,12 @@ public:
 
 	// This function will signal both receive threads to stop and close all sockets.
 	void Shutdown();
+
+	// Validates packet structure and CRC-32 integrity.
+	// buffer    - pointer to the full assembled packet (Header + Body + CRC tail)
+	// totalSize - total byte count of the assembled packet
+	// Returns true if both structural and CRC checks pass.
+	bool ValidatePacket(const char* buffer, unsigned int totalSize) const;
 };
 
 #endif // SERVER_H

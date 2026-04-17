@@ -11,8 +11,8 @@ private:
     // Helper to compute the expected signature (Secret + Random Number)
     static uint32_t ComputeSignature(uint32_t random, const std::string& secret) {
         std::string payload = secret;
-        payload.append((const char*)(&random), sizeof(uint32_t));
-        return CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
+        (void)payload.append(reinterpret_cast<const char*>(&random), sizeof(uint32_t));
+        return Checksum::CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
     }
 
 public:
@@ -24,7 +24,7 @@ public:
         clientChallenge.Type = static_cast<uint32_t>(VerificationPacketType::CHALLENGE);
         clientChallenge.Random = static_cast<uint32_t>(rand());
         // CRC-32 covers Type + Random (8 bytes)
-        clientChallenge.CRC32 = CRC32::Calculate(reinterpret_cast<const char*>(&clientChallenge), sizeof(uint32_t) + sizeof(uint32_t));
+        clientChallenge.CRC32 = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientChallenge), sizeof(uint32_t) + sizeof(uint32_t));
 
         int bytesSent = send(clientSocket, reinterpret_cast<const char*>(&clientChallenge), sizeof(ChallengePacket), 0);
         if (bytesSent != sizeof(ChallengePacket)) {
@@ -52,7 +52,7 @@ public:
         }
 
         // Validate CRC-32 (Type + Signature)
-        uint32_t expectedSvrResponseCRC = CRC32::Calculate(reinterpret_cast<const char*>(&serverResponse), sizeof(uint32_t) + sizeof(uint32_t));
+        uint32_t expectedSvrResponseCRC = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverResponse), sizeof(uint32_t) + sizeof(uint32_t));
         if (serverResponse.CRC32 != expectedSvrResponseCRC) {
             std::cerr << "[Handshake] Step 2: CRC-32 validation failed." << std::endl;
             return false;
@@ -85,7 +85,7 @@ public:
         }
 
         // Validate CRC-32
-        uint32_t expectedSvrChallengeCRC = CRC32::Calculate(reinterpret_cast<const char*>(&serverChallenge), sizeof(uint32_t) + sizeof(uint32_t));
+        uint32_t expectedSvrChallengeCRC = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverChallenge), sizeof(uint32_t) + sizeof(uint32_t));
         if (serverChallenge.CRC32 != expectedSvrChallengeCRC) {
             std::cerr << "[Handshake] Step 3: CRC-32 validation failed." << std::endl;
             return false;
@@ -99,7 +99,7 @@ public:
         ResponsePacket clientResponse{};
         clientResponse.Type = static_cast<uint32_t>(VerificationPacketType::RESPONSE);
         clientResponse.Signature = ComputeSignature(serverChallenge.Random, sharedSecret);
-        clientResponse.CRC32 = CRC32::Calculate(reinterpret_cast<const char*>(&clientResponse), sizeof(uint32_t) + sizeof(uint32_t));
+        clientResponse.CRC32 = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientResponse), sizeof(uint32_t) + sizeof(uint32_t));
 
         bytesSent = send(clientSocket, reinterpret_cast<const char*>(&clientResponse), sizeof(ResponsePacket), 0);
         if (bytesSent != sizeof(ResponsePacket)) {

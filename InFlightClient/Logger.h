@@ -32,7 +32,7 @@ public:
     {
         std::time_t now = std::time(nullptr);
         char timeStr[26];
-        ctime_s(timeStr, sizeof(timeStr), &now);
+        (void)ctime_s(timeStr, sizeof(timeStr), &now);
 
         // Remove newline from ctime
         std::string timestamp(timeStr);
@@ -42,7 +42,7 @@ public:
         {
             logFile << "[" << timestamp << "] ";
 
-            logFile.write(message, size);
+            (void)logFile.write(message, size);
 
             logFile << std::endl;
         }
