@@ -1,7 +1,7 @@
 #include "GroundControlClient.h"
 
 int main() {
-    GroundControlClient gc;
+    Client::GroundControlClient gc;
     if (gc.Initialize()) {
         gc.ValidateConnection();
         gc.Run();

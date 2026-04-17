@@ -4,11 +4,13 @@
 
 #include <cstdint>
 
-struct PacketHeader {
-	unsigned int FlightID;
-	unsigned int MessageType;
-	unsigned int Length;
-	uint32_t TimeStamp;
+namespace Communication {
+	struct PacketHeader {
+		unsigned int FlightID;
+		unsigned int MessageType;
+		unsigned int Length;
+		uint32_t TimeStamp;
+	};
 };
 
 #endif // PACKET_HEADER

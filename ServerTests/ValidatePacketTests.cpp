@@ -16,29 +16,29 @@ namespace ServerTests
     // Helper — builds a valid serialized packet buffer and returns it.
     // Caller is responsible for delete[].
     void BuildValidPacket(char** buf, const char* body, unsigned int bodyLen, unsigned int& outTotalSize) {
-        outTotalSize = sizeof(PacketHeader) + bodyLen + sizeof(uint32_t);
+        outTotalSize = sizeof(Communication::PacketHeader) + bodyLen + sizeof(uint32_t);
 
         *buf = new char[outTotalSize];
 
         (void)std::memset(*buf, 0, outTotalSize);
 
         // Fill header
-        PacketHeader hdr{};
+        Communication::PacketHeader hdr{};
         hdr.FlightID = 42U;
         hdr.MessageType = 1U;
         hdr.Length = bodyLen;
         hdr.TimeStamp = 7U;
 
-        (void)std::memcpy(*buf, &hdr, sizeof(PacketHeader));
+        (void)std::memcpy(*buf, &hdr, sizeof(Communication::PacketHeader));
 
         // Fill body
         if (body != nullptr && bodyLen > 0U) {
-            std::memcpy(*buf + sizeof(PacketHeader), body, bodyLen);
+            std::memcpy(*buf + sizeof(Communication::PacketHeader), body, bodyLen);
         };
 
         // Compute CRC-32 over header + body, append as tail
-        uint32_t crc = Checksum::CRC32::Calculate(*buf, sizeof(PacketHeader) + bodyLen);
-        std::memcpy(*buf + sizeof(PacketHeader) + bodyLen, &crc, sizeof(uint32_t));
+        uint32_t crc = Checksum::CRC32::Calculate(*buf, sizeof(Communication::PacketHeader) + bodyLen);
+        std::memcpy(*buf + sizeof(Communication::PacketHeader) + bodyLen, &crc, sizeof(uint32_t));
     };
 
     TEST_CLASS(ValidatePacketTests) {
@@ -49,7 +49,7 @@ namespace ServerTests
         // --------------------------------------------------------
 
         TEST_METHOD(ValidPacket_WithBody_ReturnsTrue) {
-            Server server;
+            Networking::Server server;
 
             const char body[] = "Hello GC";
             unsigned int totalSize = 0U;
@@ -69,7 +69,7 @@ namespace ServerTests
         };
 
         TEST_METHOD(ValidPacket_EmptyBody_ReturnsTrue) {
-            Server server;
+            Networking::Server server;
 
             unsigned int totalSize = 0U;
 
@@ -86,7 +86,7 @@ namespace ServerTests
         };
 
         TEST_METHOD(ValidPacket_LargeBody_ReturnsTrue) {
-            Server server;
+            Networking::Server server;
 
             const unsigned int bodyLen = 1024U;
 
@@ -118,7 +118,7 @@ namespace ServerTests
         // --------------------------------------------------------
 
         TEST_METHOD(TooSmall_BelowMinimumSize_ReturnsFalse) {
-            Server server;
+            Networking::Server server;
 
             // Anything smaller than sizeof(PacketHeader) + sizeof(CRC) is invalid.
             char buf[4] = { 0x01, 0x02, 0x03, 0x04 };
@@ -129,7 +129,7 @@ namespace ServerTests
         };
 
         TEST_METHOD(StructuralMismatch_LengthFieldTooLarge_ReturnsFalse) {
-            Server server;
+            Networking::Server server;
 
             // Build a packet where hdr.Length claims more bytes than we actually have.
             const char body[] = "short";
@@ -140,11 +140,11 @@ namespace ServerTests
             (void)BuildValidPacket(&buf, body, sizeof(body), totalSize);
 
             // Inflate the Length field inside the buffer to lie about body size.
-            PacketHeader hdr{};
-            (void)std::memcpy(&hdr, buf, sizeof(PacketHeader));
+            Communication::PacketHeader hdr{};
+            (void)std::memcpy(&hdr, buf, sizeof(Communication::PacketHeader));
 
             hdr.Length = 9999U;   // way more than we have
-            (void)std::memcpy(buf, &hdr, sizeof(PacketHeader));
+            (void)std::memcpy(buf, &hdr, sizeof(Communication::PacketHeader));
 
             bool result = server.ValidatePacket(buf, totalSize);
 
@@ -155,7 +155,7 @@ namespace ServerTests
         };
 
         TEST_METHOD(StructuralMismatch_TotalSizeTooSmall_ReturnsFalse) {
-            Server server;
+            Networking::Server server;
 
             const char body[] = "test body";
             unsigned int totalSize = 0U;
@@ -178,7 +178,7 @@ namespace ServerTests
          --------------------------------------------------------*/
 
         TEST_METHOD(CorruptedBody_ReturnsFalse) {
-            Server server;
+            Networking::Server server;
 
             const char body[] = "Original data";
             unsigned int totalSize = 0U;
@@ -188,7 +188,7 @@ namespace ServerTests
             (void)BuildValidPacket(&buf, body, sizeof(body), totalSize);
 
             // Flip a byte in the body — CRC should no longer match.
-            buf[sizeof(PacketHeader) + 4] ^= 0xFF;
+            buf[sizeof(Communication::PacketHeader) + 4] ^= 0xFF;
 
             bool result = server.ValidatePacket(buf, totalSize);
 
@@ -199,7 +199,7 @@ namespace ServerTests
         };
 
         TEST_METHOD(CorruptedHeader_ReturnsFalse) {
-            Server server;
+            Networking::Server server;
 
             const char body[] = "Test";
             unsigned int totalSize = 0U;
@@ -220,7 +220,7 @@ namespace ServerTests
         };
 
         TEST_METHOD(CorruptedCRCTail_ReturnsFalse) {
-            Server server;
+            Networking::Server server;
 
             const char body[] = "Integrity";
             unsigned int totalSize = 0U;
@@ -230,7 +230,7 @@ namespace ServerTests
             (void)BuildValidPacket(&buf, body, sizeof(body), totalSize);
 
             // Corrupt the CRC tail directly.
-            unsigned int crcOffset = sizeof(PacketHeader) + sizeof(body);
+            unsigned int crcOffset = sizeof(Communication::PacketHeader) + sizeof(body);
             buf[crcOffset] ^= 0xFF;
 
             bool result = server.ValidatePacket(buf, totalSize);
@@ -242,7 +242,7 @@ namespace ServerTests
         };
 
         TEST_METHOD(ZeroCRC_WhenNonZeroExpected_ReturnsFalse) {
-            Server server;
+            Networking::Server server;
 
             const char body[] = "NonZeroCRC";
             unsigned int totalSize = 0U;
@@ -252,7 +252,7 @@ namespace ServerTests
             (void)BuildValidPacket(&buf, body, sizeof(body), totalSize);
 
             // Overwrite CRC tail with all zeros.
-            unsigned int crcOffset = sizeof(PacketHeader) + 10U;
+            unsigned int crcOffset = sizeof(Communication::PacketHeader) + 10U;
             (void)std::memset(buf + crcOffset, 0, sizeof(uint32_t));
 
             bool result = server.ValidatePacket(buf, totalSize);
