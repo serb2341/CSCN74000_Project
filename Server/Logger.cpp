@@ -66,16 +66,22 @@ void Logging::Logger::Stop() {
 void Logging::Logger::Log(const std::string& entry) {
 	std::lock_guard<std::mutex> lock(this->mutex);
 
+	bool shouldEnqueue = true;
+
 	if (this->queue.size() >= LOG_QUEUE_MAX) {
 		// Queue is full so we drop the entry and warn on console.
 		std::cerr << "[Logger] WARNING: Log queue full. Entry dropped." << std::endl;
 
-		return;
+		shouldEnqueue = false;
 	};
 
-	this->queue.push(entry);
+	if (shouldEnqueue) {
+		this->queue.push(entry);
 
-	this->cv.notify_one();
+		this->cv.notify_one();
+	};
+
+	return;
 };
 
 // ============================================================

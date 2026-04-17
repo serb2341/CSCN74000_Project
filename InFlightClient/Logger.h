@@ -13,14 +13,15 @@
 #include <ctime>
 #include "Packet.h"
 
+namespace Logging {
+    class Logger {
+    private:
+        std::ofstream logFile;
+    public:
+        Logger(const std::string& filename);
 
-class Logger {
-private:
-    std::ofstream logFile;
-public:
-    Logger(const std::string& filename);
+        ~Logger();
 
-    ~Logger();
-
-    void Log(const char* message, unsigned int size);
+        void Log(const char* message, unsigned int size);
+    };
 };

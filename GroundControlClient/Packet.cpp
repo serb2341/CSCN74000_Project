@@ -2,7 +2,7 @@
 #include "CRC32.h"
 
 // Constructor.
-Packet::Packet() {
+Communication::Packet::Packet() {
 	this->data = nullptr;
 
 	this->txBuffer = nullptr;
@@ -12,7 +12,7 @@ Packet::Packet() {
 	(void)std::memset(&(this->pktHead), 0, sizeof(PacketHeader));
 };
 
-Packet::Packet(const char* src) {
+Communication::Packet::Packet(const char* src) {
 	this->data = nullptr;
 
 	this->txBuffer = nullptr;
@@ -28,14 +28,14 @@ Packet::Packet(const char* src) {
 
 		(void)std::memset(this->data, 0, this->pktHead.Length);
 
-		std::memcpy(this->data, src + sizeof(PacketHeader), this->pktHead.Length); //-V2563
+		(void)std::memcpy(this->data, src + sizeof(PacketHeader), this->pktHead.Length); //-V2563
 
 		(void)std::memcpy(&(this->CRC), src + sizeof(PacketHeader) + this->pktHead.Length, sizeof(this->CRC)); //-V2563
 	};
 };
 
 // Destructor.
-Packet::~Packet() {
+Communication::Packet::~Packet() {
 	delete[] this->data;
 	this->data = nullptr;
 
@@ -44,7 +44,7 @@ Packet::~Packet() {
 };
 
 // Copy Constructor - Deep Copy.
-Packet::Packet(const Packet& pkt) {
+Communication::Packet::Packet(const Packet& pkt) {
 	this->pktHead = pkt.pktHead;
 	this->CRC = pkt.CRC;
 	this->data = nullptr;
@@ -59,7 +59,7 @@ Packet::Packet(const Packet& pkt) {
 
 
 // Copy Assignment.
-Packet& Packet::operator=(const Packet& pkt) {
+Communication::Packet& Communication::Packet::operator=(const Packet& pkt) {
 	if (this != &pkt) {
 		delete[] this->data;
 		this->data = nullptr;
@@ -80,7 +80,7 @@ Packet& Packet::operator=(const Packet& pkt) {
 	return *this;
 };
 
-void Packet::SetData(const char* srcData, unsigned int size) {
+void Communication::Packet::SetData(const char* srcData, unsigned int size) {
 	if ((srcData != nullptr) && (size > 0U)) {
 		delete[] this->data;
 		this->data = nullptr;
@@ -95,7 +95,7 @@ void Packet::SetData(const char* srcData, unsigned int size) {
 	};
 };
 
-char* Packet::SerializeData(unsigned int& totalSize) {
+char* Communication::Packet::SerializeData(unsigned int& totalSize) {
 	totalSize = sizeof(PacketHeader) + this->pktHead.Length + sizeof(this->CRC);
 
 	delete[] this->txBuffer;
@@ -116,7 +116,7 @@ char* Packet::SerializeData(unsigned int& totalSize) {
 	return this->txBuffer;
 };
 
-void Packet::DeserializeData(const char* rxBuffer) {
+void Communication::Packet::DeserializeData(const char* rxBuffer) {
 	if (rxBuffer != nullptr) {
 		delete[] this->data;
 		this->data = nullptr;
@@ -134,19 +134,19 @@ void Packet::DeserializeData(const char* rxBuffer) {
 	};
 };
 
-void Packet::SetFlightID(unsigned int value) {
+void Communication::Packet::SetFlightID(unsigned int value) {
 	this->pktHead.FlightID = value;
 };
 
-void Packet::SetMessageType(unsigned int value) {
+void Communication::Packet::SetMessageType(unsigned int value) {
 	this->pktHead.MessageType = value;
 };
 
-void Packet::SetTimeStamp(uint32_t value) {
+void Communication::Packet::SetTimeStamp(uint32_t value) {
 	this->pktHead.TimeStamp = value;
 };
 
-void Packet::DisplayInFlightSide(std::ostream& os) {
+void Communication::Packet::DisplayInFlightSide(std::ostream& os) {
 	os << std::dec;
 
 	os << "Ground Control | ";
@@ -156,7 +156,7 @@ void Packet::DisplayInFlightSide(std::ostream& os) {
 	os << std::endl;
 };
 
-void Packet::DisplayGroundControlSide(std::ostream& os) {
+void Communication::Packet::DisplayGroundControlSide(std::ostream& os) {
 	os << std::dec;
 
 	os << this->pktHead.FlightID << " | ";
@@ -166,7 +166,7 @@ void Packet::DisplayGroundControlSide(std::ostream& os) {
 	os << std::endl;
 };
 
-uint32_t Packet::CalculateCRC() const {
+uint32_t Communication::Packet::CalculateCRC() const {
 	// Contiguous buffer of Header + Body.
 	char* tempBuffer = new char[sizeof(PacketHeader) + this->pktHead.Length];
 
@@ -184,20 +184,20 @@ uint32_t Packet::CalculateCRC() const {
 	return crc;
 };
 
-const char* Packet::GetData() {
+const char* Communication::Packet::GetData() {
 	return this->data;
 };
 
-unsigned int Packet::GetBodyLength() {
+unsigned int Communication::Packet::GetBodyLength() {
 	return this->pktHead.Length;
 };
 
-unsigned int Packet::GetFlightID() {
+unsigned int Communication::Packet::GetFlightID() {
 	return this->pktHead.FlightID;
 };
 
 
 // Provides access to the packet's header information without allowing modification, which is used for logging and auditing purposes.
-const PacketHeader& Packet::GetHeader() const {
+const Communication::PacketHeader& Communication::Packet::GetHeader() const {
 	return this->pktHead;
 }

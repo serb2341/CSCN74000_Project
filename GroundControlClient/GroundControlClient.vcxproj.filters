@@ -35,9 +35,6 @@
     <ClInclude Include="Packet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Server\VerificationPacket.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Handshake.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -48,6 +45,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CRC32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VerificationPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

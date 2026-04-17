@@ -12,10 +12,10 @@
 #include <iomanip>
 #include <cstdint>
 
-// Maximum number of entries the queue can hold before drops occur.
-static const unsigned int LOG_QUEUE_MAX = 500U;
-
 namespace Logging {
+	// Maximum number of entries the queue can hold before drops occur.
+	static const unsigned int LOG_QUEUE_MAX = 500U;
+
 	class Logger {
 	private:
 		std::queue<std::string> queue;

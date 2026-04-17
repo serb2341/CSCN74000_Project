@@ -22,14 +22,14 @@ namespace ServerTests {
         // --------------------------------------------------------
 
         TEST_METHOD(PacketHeader_SizeIs16Bytes) {
-            Assert::AreEqual(static_cast<size_t>(16U), sizeof(PacketHeader),
+            Assert::AreEqual(static_cast<size_t>(16U), sizeof(Communication::PacketHeader),
                 L"PacketHeader must be exactly 16 bytes with #pragma pack(1). "
                 L"If this fails, compiler padding is breaking the wire format.");
         };
 
         TEST_METHOD(PacketHeader_FlightID_Offset0) {
             // FlightID must start at byte 0 of the struct.
-            PacketHeader h{};
+            Communication::PacketHeader h{};
 
             size_t offset = reinterpret_cast<size_t>(&h.FlightID) - reinterpret_cast<size_t>(&h);
 
@@ -37,7 +37,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(PacketHeader_MessageType_Offset4) {
-            PacketHeader h{};
+            Communication::PacketHeader h{};
 
             size_t offset = reinterpret_cast<size_t>(&h.MessageType) - reinterpret_cast<size_t>(&h);
 
@@ -45,7 +45,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(PacketHeader_TimeStamp_Offset12) {
-            PacketHeader h{};
+            Communication::PacketHeader h{};
 
             size_t offset = reinterpret_cast<size_t>(&h.TimeStamp) - reinterpret_cast<size_t>(&h);
 
@@ -53,7 +53,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(PacketHeader_Length_Offset8) {
-            PacketHeader h{};
+            Communication::PacketHeader h{};
 
             size_t offset = reinterpret_cast<size_t>(&h.Length) - reinterpret_cast<size_t>(&h);
 
@@ -70,15 +70,15 @@ namespace ServerTests {
         // --------------------------------------------------------
 
         TEST_METHOD(ChallengePacket_SizeIs12Bytes) {
-            Assert::AreEqual(static_cast<size_t>(12U), sizeof(ChallengePacket), L"ChallengePacket must be exactly 12 bytes.");
+            Assert::AreEqual(static_cast<size_t>(12U), sizeof(Handshake::ChallengePacket), L"ChallengePacket must be exactly 12 bytes.");
         };
 
         TEST_METHOD(ResponsePacket_SizeIs12Bytes) {
-            Assert::AreEqual(static_cast<size_t>(12U), sizeof(ResponsePacket), L"ResponsePacket must be exactly 12 bytes.");
+            Assert::AreEqual(static_cast<size_t>(12U), sizeof(Handshake::ResponsePacket), L"ResponsePacket must be exactly 12 bytes.");
         };
 
         TEST_METHOD(ChallengePacket_Type_Offset0) {
-            ChallengePacket p{};
+            Handshake::ChallengePacket p{};
 
             size_t offset = reinterpret_cast<size_t>(&p.Type) - reinterpret_cast<size_t>(&p);
 
@@ -86,7 +86,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(ChallengePacket_CRC32_Offset8) {
-            ChallengePacket p{};
+            Handshake::ChallengePacket p{};
 
             size_t offset = reinterpret_cast<size_t>(&p.CRC32) - reinterpret_cast<size_t>(&p);
 
@@ -94,7 +94,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(ResponsePacket_CRC32_Offset8) {
-            ResponsePacket p{};
+            Handshake::ResponsePacket p{};
 
             size_t offset = reinterpret_cast<size_t>(&p.CRC32) - reinterpret_cast<size_t>(&p);
 

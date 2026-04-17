@@ -134,12 +134,12 @@
     <ClCompile Include="Packet.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Server\VerificationPacket.h" />
     <ClInclude Include="CRC32.h" />
     <ClInclude Include="GroundControlClient.h" />
     <ClInclude Include="Handshake.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="Packet.h" />
+    <ClInclude Include="VerificationPacket.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

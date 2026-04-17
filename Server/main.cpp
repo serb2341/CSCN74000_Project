@@ -1,15 +1,20 @@
 #include "Server.h"
 
 int main(void) {
-	Server server;
+	int exitStatus = -1;
+
+	Networking::Server server;
 
 	if (!server.Initialize()) {
-		return -1;
+	}
+
+	else {
+		server.AcceptClients();
+
+		server.Run();
+
+		exitStatus = 0;
 	};
 
-	server.AcceptClients();
-
-	server.Run();
-
-	return 0;
+	return exitStatus;
 };
