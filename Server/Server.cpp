@@ -19,6 +19,8 @@ Server::Server() {
 
 	this->groundControlConnected = false;
 	this->airplaneConnected = false;
+
+	this->winsockInitialized = false;
 };
 
 Server::~Server() {
@@ -95,6 +97,8 @@ bool Server::InitializeWinsock() {
 
 		return false;
 	};
+
+	this->winsockInitialized = true;
 
 	return true;
 };
@@ -842,7 +846,11 @@ void Server::Shutdown() {
 
 	this->logger.Stop();
 
-	(void)WSACleanup();
+	if (this->winsockInitialized) {
+		(void)WSACleanup();
+
+		this->winsockInitialized = false;
+	};
 
 	std::cout << "[Server] Shutdown complete." << std::endl;
 };

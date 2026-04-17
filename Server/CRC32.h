@@ -11,7 +11,7 @@ namespace Checksum {
 	public:
 		// Here we compute the CRC-32 over the given byte buffer.
 		// buffer is the pointer to the data to checksum.
-		// lenght is the number of bytes to process.
+		// length is the number of bytes to process.
 		// The method returns the 32-bit CRC value.
 		static uint32_t Calculate(const char* buffer, unsigned int length);
 	};

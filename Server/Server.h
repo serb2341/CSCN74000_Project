@@ -61,10 +61,12 @@ private:
 	std::atomic<bool> groundControlConnected;
 	std::atomic<bool> airplaneConnected;
 
-	Logger logger;
+	Logging::Logger logger;
 
 	std::string sharedSecret;			// Shared Secret key.
 	std::string logFilePath;
+
+	bool winsockInitialized;
 
 	// Reads shared secret from a key=value .txt config file.
 	// Returns true if the SECRET key is found and loaded.
