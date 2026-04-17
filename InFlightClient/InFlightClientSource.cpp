@@ -101,7 +101,7 @@ bool Client::InFlightClient::CreateSocket() {
 		// Bind to all interfaces on SERVER_PORT.
 		sockaddr_in SvrAddr;
 		SvrAddr.sin_family = AF_INET;						//Address family type itnernet
-		SvrAddr.sin_port = htons(54000);					//port (host to network conversion)
+		SvrAddr.sin_port = htons(54564);					//port (host to network conversion)
 
 		static const char ipAddress[] = "127.0.0.1";
 		(void)inet_pton(AF_INET, &ipAddress[0], &SvrAddr.sin_addr);
@@ -403,7 +403,7 @@ void Client::InFlightClient::receiveMessage() {
 
 		(void)std::memcpy(&pktHead, &headerBuffer[0], sizeof(pktHead));
 
-		char* recvBuffer = new char[sizeof(pktHead) + pktHead.Length + sizeof(uint32_t)];
+		char* recvBuffer = new char[sizeof(pktHead) + pktHead.Length + sizeof(uint32_t)];   // The data size is not known at compile time or object construction time and therefore dynamic memory needs to be used.Previous allocation is released before new allocation, preventing memory leaks.
 
 		(void)std::memset(recvBuffer, 0, sizeof(pktHead) + pktHead.Length + sizeof(uint32_t));
 
@@ -437,7 +437,7 @@ void Client::InFlightClient::receiveMessage() {
 			};
 		};
 
-		delete[] recvBuffer;
+		delete[] recvBuffer;  //Deletes dynamically allocated memory
 		recvBuffer = nullptr;
 	};
 
@@ -492,7 +492,7 @@ void Client::InFlightClient::Run() {
 			std::string bodyHeading = "TELEMETRY|";
 
 			// Allocating heap memory.
-			char* telBuffer = new char[size + bodyHeading.length()];
+			char* telBuffer = new char[size + bodyHeading.length()];  // The data size is not known at compile time or object construction time and therefore dynamic memory needs to be used.Previous allocation is released before new allocation, preventing memory leaks.
 
 			if (!telBuffer) {
 				std::cout << "Failed to allocate dynamic memory to telemetry file.\n";
@@ -510,7 +510,7 @@ void Client::InFlightClient::Run() {
 				this->sendMessage(1, telBuffer, size);
 			};
 
-			delete[] telBuffer;
+			delete[] telBuffer;  //Deletes dynamically allocated memory
 			telBuffer = nullptr;
 			
 			std::cout << "In Flight Client | Telemetry file successfully sent" << std::endl;

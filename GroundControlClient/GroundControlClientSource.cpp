@@ -95,7 +95,7 @@ bool Client::GroundControlClient::CreateSocket() {
         // Define the destination IP and port for the Ground Control link
         sockaddr_in serverAddr{};
         serverAddr.sin_family = AF_INET;
-        serverAddr.sin_port = htons(54000);
+        serverAddr.sin_port = htons(54564);
 
         static const char ipAddress[] = "127.0.0.1";
         (void)inet_pton(AF_INET, &ipAddress[0], &serverAddr.sin_addr);
@@ -172,7 +172,7 @@ void Client::GroundControlClient::receiveMessage() {
 
         // Create a buffer on the heap sized for this specific packet (dynamic allocation)
         unsigned int fullSize = sizeof(Communication::PacketHeader) + head.Length + sizeof(uint32_t);
-        char* buffer = new char[fullSize];
+        char* buffer = new char[fullSize];  //The data size is not known at compile time or object construction time and therefore dynamic memory needs to be used. Previous allocation is released before new allocation, preventing memory leaks.
 
         // Copy the existing header data into the beginning of the newly allocated buffer
         (void)std::memcpy(buffer, &headerBuffer[0], sizeof(Communication::PacketHeader));
@@ -220,7 +220,7 @@ void Client::GroundControlClient::receiveMessage() {
         };
 
         // Release the heap buffer to prevent resource leaks / Memory clean up
-        delete[] buffer;
+        delete[] buffer;  //Deletes dynamically allocated memory
         buffer = nullptr;
     };
 
