@@ -95,7 +95,7 @@ bool Client::GroundControlClient::CreateSocket() {
         // Define the destination IP and port for the Ground Control link
         sockaddr_in serverAddr{};
         serverAddr.sin_family = AF_INET;
-        serverAddr.sin_port = htons(54000);
+        serverAddr.sin_port = htons(54564);
 
         static const char ipAddress[] = "127.0.0.1";
         (void)inet_pton(AF_INET, &ipAddress[0], &serverAddr.sin_addr);

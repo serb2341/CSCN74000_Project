@@ -101,7 +101,7 @@ bool Client::InFlightClient::CreateSocket() {
 		// Bind to all interfaces on SERVER_PORT.
 		sockaddr_in SvrAddr;
 		SvrAddr.sin_family = AF_INET;						//Address family type itnernet
-		SvrAddr.sin_port = htons(54000);					//port (host to network conversion)
+		SvrAddr.sin_port = htons(54564);					//port (host to network conversion)
 
 		static const char ipAddress[] = "127.0.0.1";
 		(void)inet_pton(AF_INET, &ipAddress[0], &SvrAddr.sin_addr);

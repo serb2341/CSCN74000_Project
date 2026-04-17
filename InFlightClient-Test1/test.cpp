@@ -322,7 +322,7 @@ TEST_F(InFlightClientTest, LoadConfig_SecretMissing_ReturnsFalse)
 {
     // Arrange
     std::ofstream file("config_bad.txt");
-    file << "PORT=54000";
+    file << "PORT=54564";
     file.close();
 
     // Act
