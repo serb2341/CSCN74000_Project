@@ -228,7 +228,7 @@ namespace ServerSystemTests
             // ---- Build and send CORRUPT packet ----
             // Manually construct a packet buffer and flip a CRC byte.
             {
-                Communication::Packet pkt;
+                InFlightCommunication::Packet pkt;
                 pkt.SetFlightID(101U);
                 pkt.SetMessageType(0U);
                 pkt.SetTimeStamp(1U);

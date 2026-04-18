@@ -11,17 +11,17 @@
 
 #define SECRET_KEY_WORDING "SECRET"
 
-Client::InFlightClient::InFlightClient() {
+InFlightClient::InFlightClient::InFlightClient() {
 	this->clientSocket = INVALID_SOCKET;
 
 	this->isRunning = false;
 };
 
-Client::InFlightClient::~InFlightClient() {
+InFlightClient::InFlightClient::~InFlightClient() {
 	this->Shutdown();
 };
 
-bool Client::InFlightClient::LoadConfig(const std::string& configPath) {
+bool InFlightClient::InFlightClient::LoadConfig(const std::string& configPath) {
 	bool result = false;
 
 	std::ifstream configFile(configPath);
@@ -69,7 +69,7 @@ bool Client::InFlightClient::LoadConfig(const std::string& configPath) {
 	return result;
 };
 
-bool Client::InFlightClient::InitializeWinsock() {
+bool InFlightClient::InFlightClient::InitializeWinsock() {
 	bool isInitializationSuccessful = false;
 
 	WSADATA wsaData;
@@ -87,7 +87,7 @@ bool Client::InFlightClient::InitializeWinsock() {
 	return isInitializationSuccessful;
 };
 
-bool Client::InFlightClient::CreateSocket() {
+bool InFlightClient::InFlightClient::CreateSocket() {
 	bool isSocketCreated = false;
 
 	// Creating a TCP Socket.
@@ -127,36 +127,36 @@ bool Client::InFlightClient::CreateSocket() {
 //  Handshake
 // ============================================================
 
-uint32_t Client::InFlightClient::ComputeSignature(uint32_t randomNumber) const {
+uint32_t InFlightClient::InFlightClient::ComputeSignature(uint32_t randomNumber) const {
 	std::string payload = this->sharedSecret;
 
 	(void)payload.append(reinterpret_cast<const char*>(&randomNumber), sizeof(uint32_t));
 
-	return Checksum::CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
+	return InFlightChecksum::CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
 };
 
-bool Client::InFlightClient::PerformHandshake(SOCKET clientSocket, const std::string& clientName) {
+bool InFlightClient::InFlightClient::PerformHandshake(SOCKET clientSocket, const std::string& clientName) {
 	bool result = false;
 
 	// ----------------------------------------------------------------
 	// STEP 1: Send the client's CHALLENGE packet.
 	// ----------------------------------------------------------------
-	Handshake::ChallengePacket clientChallenge{};
-	clientChallenge.Type = static_cast<uint32_t>(Handshake::VerificationPacketType::CHALLENGE);
+	InFlightHandshake::ChallengePacket clientChallenge{};
+	clientChallenge.Type = static_cast<uint32_t>(InFlightHandshake::VerificationPacketType::CHALLENGE);
 	clientChallenge.Random = static_cast<uint32_t>(rand());
 
 	// CRC-32 covers Type + Random (8 bytes)
-	clientChallenge.CRC32 = Checksum::CRC32::Calculate(
+	clientChallenge.CRC32 = InFlightChecksum::CRC32::Calculate(
 		reinterpret_cast<const char*>(&clientChallenge),
 		sizeof(uint32_t) + sizeof(uint32_t));
 
 	int bytesSent = send(
 		clientSocket,
 		reinterpret_cast<const char*>(&clientChallenge),
-		sizeof(Handshake::ChallengePacket),
+		sizeof(InFlightHandshake::ChallengePacket),
 		0);
 
-	if (bytesSent != sizeof(Handshake::ChallengePacket)) {
+	if (bytesSent != sizeof(InFlightHandshake::ChallengePacket)) {
 		std::cerr << "[" << clientName << "] Handshake Step 1: Failed to send challenge. Error: "
 			<< WSAGetLastError() << std::endl;
 	}
@@ -166,22 +166,22 @@ bool Client::InFlightClient::PerformHandshake(SOCKET clientSocket, const std::st
 		// ----------------------------------------------------------------
 		// STEP 2: Receive the Server's RESPONSE and validate signature.
 		// ----------------------------------------------------------------
-		Handshake::ResponsePacket serverResponse{};
+		InFlightHandshake::ResponsePacket serverResponse{};
 		int bytesReceived = recv(
 			clientSocket,
 			reinterpret_cast<char*>(&serverResponse),
-			sizeof(Handshake::ResponsePacket),
+			sizeof(InFlightHandshake::ResponsePacket),
 			MSG_WAITALL);
 
-		if (bytesReceived != sizeof(Handshake::ResponsePacket)) {
+		if (bytesReceived != sizeof(InFlightHandshake::ResponsePacket)) {
 			std::cerr << "[Handshake] Step 2: Failed to receive response. Error: "
 				<< WSAGetLastError() << std::endl;
 		}
-		else if (static_cast<Handshake::VerificationPacketType>(serverResponse.Type) != Handshake::VerificationPacketType::RESPONSE) {
+		else if (static_cast<InFlightHandshake::VerificationPacketType>(serverResponse.Type) != InFlightHandshake::VerificationPacketType::RESPONSE) {
 			std::cerr << "[Handshake] Step 2: Unexpected packet type." << std::endl;
 		}
 		else {
-			uint32_t expectedSvrResponseCRC = Checksum::CRC32::Calculate(
+			uint32_t expectedSvrResponseCRC = InFlightChecksum::CRC32::Calculate(
 				reinterpret_cast<const char*>(&serverResponse),
 				sizeof(uint32_t) + sizeof(uint32_t));
 
@@ -200,22 +200,22 @@ bool Client::InFlightClient::PerformHandshake(SOCKET clientSocket, const std::st
 					// ----------------------------------------------------------------
 					// STEP 3: Receive the Server's CHALLENGE.
 					// ----------------------------------------------------------------
-					Handshake::ChallengePacket serverChallenge{};
+					InFlightHandshake::ChallengePacket serverChallenge{};
 					bytesReceived = recv(
 						clientSocket,
 						reinterpret_cast<char*>(&serverChallenge),
-						sizeof(Handshake::ChallengePacket),
+						sizeof(InFlightHandshake::ChallengePacket),
 						MSG_WAITALL);
 
-					if (bytesReceived != sizeof(Handshake::ChallengePacket)) {
+					if (bytesReceived != sizeof(InFlightHandshake::ChallengePacket)) {
 						std::cerr << "[Handshake] Step 3: Failed to receive server challenge. Error: "
 							<< WSAGetLastError() << std::endl;
 					}
-					else if (static_cast<Handshake::VerificationPacketType>(serverChallenge.Type) != Handshake::VerificationPacketType::CHALLENGE) {
+					else if (static_cast<InFlightHandshake::VerificationPacketType>(serverChallenge.Type) != InFlightHandshake::VerificationPacketType::CHALLENGE) {
 						std::cerr << "[Handshake] Step 3: Unexpected packet type." << std::endl;
 					}
 					else {
-						uint32_t expectedSvrChallengeCRC = Checksum::CRC32::Calculate(
+						uint32_t expectedSvrChallengeCRC = InFlightChecksum::CRC32::Calculate(
 							reinterpret_cast<const char*>(&serverChallenge),
 							sizeof(uint32_t) + sizeof(uint32_t));
 
@@ -228,20 +228,20 @@ bool Client::InFlightClient::PerformHandshake(SOCKET clientSocket, const std::st
 							// ----------------------------------------------------------------
 							// STEP 4: Send the client's RESPONSE.
 							// ----------------------------------------------------------------
-							Handshake::ResponsePacket clientResponse{};
-							clientResponse.Type = static_cast<uint32_t>(Handshake::VerificationPacketType::RESPONSE);
+							InFlightHandshake::ResponsePacket clientResponse{};
+							clientResponse.Type = static_cast<uint32_t>(InFlightHandshake::VerificationPacketType::RESPONSE);
 							clientResponse.Signature = ComputeSignature(serverChallenge.Random);
-							clientResponse.CRC32 = Checksum::CRC32::Calculate(
+							clientResponse.CRC32 = InFlightChecksum::CRC32::Calculate(
 								reinterpret_cast<const char*>(&clientResponse),
 								sizeof(uint32_t) + sizeof(uint32_t));
 
 							bytesSent = send(
 								clientSocket,
 								reinterpret_cast<const char*>(&clientResponse),
-								sizeof(Handshake::ResponsePacket),
+								sizeof(InFlightHandshake::ResponsePacket),
 								0);
 
-							if (bytesSent != sizeof(Handshake::ResponsePacket)) {
+							if (bytesSent != sizeof(InFlightHandshake::ResponsePacket)) {
 								std::cerr << "[Handshake] Step 4: Failed to send response. Error: "
 									<< WSAGetLastError() << std::endl;
 							}
@@ -265,21 +265,21 @@ bool Client::InFlightClient::PerformHandshake(SOCKET clientSocket, const std::st
 //  Packet Validation
 // ============================================================
 
-bool Client::InFlightClient::ValidatePacket(const char* buffer, unsigned int totalSize) const {
+bool InFlightClient::InFlightClient::ValidatePacket(const char* buffer, unsigned int totalSize) const {
 	bool isPacketValid = false;
 
 	// ---- Structural check ----
 	// totalSize must be at least Header + CRC tail (body can be zero length).
-	if (totalSize < (sizeof(Communication::PacketHeader) + sizeof(uint32_t))) {
+	if (totalSize < (sizeof(InFlightCommunication::PacketHeader) + sizeof(uint32_t))) {
 		std::cerr << "[Validation] Packet too small to be valid." << std::endl;
 	}
 	else {
 		// Extracting the header to read Length.
-		Communication::PacketHeader pktHeader{};
-		(void)std::memcpy(&pktHeader, buffer, sizeof(Communication::PacketHeader));
+		InFlightCommunication::PacketHeader pktHeader{};
+		(void)std::memcpy(&pktHeader, buffer, sizeof(InFlightCommunication::PacketHeader));
 
 		// Verify the declared length matches the actual received size
-		unsigned int expectedSize = sizeof(Communication::PacketHeader) + pktHeader.Length + sizeof(uint32_t);
+		unsigned int expectedSize = sizeof(InFlightCommunication::PacketHeader) + pktHeader.Length + sizeof(uint32_t);
 
 		if (totalSize != expectedSize) {
 			std::cerr << "[Validation] Structural mismatch: expected " << expectedSize << " bytes, got " << totalSize << " bytes." << std::endl;
@@ -287,9 +287,9 @@ bool Client::InFlightClient::ValidatePacket(const char* buffer, unsigned int tot
 		else {
 			// ---- CRC-32 integrity check ----
 			// CRC-32 is computed over Header + Body (everything except the CRC tail itself)
-			unsigned int payloadSize = sizeof(Communication::PacketHeader) + pktHeader.Length;
+			unsigned int payloadSize = sizeof(InFlightCommunication::PacketHeader) + pktHeader.Length;
 
-			uint32_t computedCRC = Checksum::CRC32::Calculate(buffer, payloadSize);
+			uint32_t computedCRC = InFlightChecksum::CRC32::Calculate(buffer, payloadSize);
 
 			// The CRC tail sits at the very end of the buffer
 			uint32_t receivedCRC = 0U;
@@ -308,7 +308,7 @@ bool Client::InFlightClient::ValidatePacket(const char* buffer, unsigned int tot
 };
 
 
-void Client::InFlightClient::CloseSocket(SOCKET* socketPtr) {
+void InFlightClient::InFlightClient::CloseSocket(SOCKET* socketPtr) {
 	if (*socketPtr != INVALID_SOCKET) {
 		(void)closesocket(*socketPtr);
 
@@ -318,7 +318,7 @@ void Client::InFlightClient::CloseSocket(SOCKET* socketPtr) {
 	};
 };
 
-bool Client::InFlightClient::Initialize(int flightID) {
+bool InFlightClient::InFlightClient::Initialize(int flightID) {
 	bool isInitialized = false;
 
 	// Seed random number generator for challenge generation.
@@ -347,7 +347,7 @@ bool Client::InFlightClient::Initialize(int flightID) {
 	return isInitialized;
 };
 
-void Client::InFlightClient::ValidateConnection() {
+void InFlightClient::InFlightClient::ValidateConnection() {
 	bool handshakeSuccessful = this->PerformHandshake(this->clientSocket, "In Flight Client");
 
 	if (!handshakeSuccessful) {
@@ -364,8 +364,8 @@ void Client::InFlightClient::ValidateConnection() {
 	return;
 };
 
-void Client::InFlightClient::sendMessage(int messageType, const char* message, unsigned int size) {
-	Communication::Packet newPkt; //Packet object is created
+void InFlightClient::InFlightClient::sendMessage(int messageType, const char* message, unsigned int size) {
+	InFlightCommunication::Packet newPkt; //Packet object is created
 	newPkt.SetFlightID(this->flightID); //populates the newPkt object with the data 
 	newPkt.SetMessageType(messageType); //populates the newPkt object with the data
 	newPkt.SetTimeStamp(std::chrono::duration_cast<std::chrono::seconds>(
@@ -381,11 +381,11 @@ void Client::InFlightClient::sendMessage(int messageType, const char* message, u
 	logger.Log(message, size);
 }
 
-void Client::InFlightClient::receiveMessage() {
+void InFlightClient::InFlightClient::receiveMessage() {
 	bool shouldShutdownClient = false;
 
 	// ---- Phase 1: Receiving the fixed-size header. ----
-	char headerBuffer[sizeof(Communication::PacketHeader)];
+	char headerBuffer[sizeof(InFlightCommunication::PacketHeader)];
 
 	int bytesReceived = recv(this->clientSocket, &headerBuffer[0], sizeof(headerBuffer), MSG_WAITALL);
 
@@ -394,12 +394,12 @@ void Client::InFlightClient::receiveMessage() {
 
 		shouldShutdownClient = true;
 	}
-	else if (bytesReceived != sizeof(Communication::PacketHeader)) {
+	else if (bytesReceived != sizeof(InFlightCommunication::PacketHeader)) {
 		std::cerr << "[InFlightClient] Header recv() failed. Error: " << WSAGetLastError() << std::endl;
 	}
 	else {
 		// ---- Phase 2: Reading Length from header and allocating exact buffer. ----
-		Communication::PacketHeader pktHead{};
+		InFlightCommunication::PacketHeader pktHead{};
 
 		(void)std::memcpy(&pktHead, &headerBuffer[0], sizeof(pktHead));
 
@@ -429,7 +429,7 @@ void Client::InFlightClient::receiveMessage() {
 			}
 			else {
 				// ---- Phase 5: Deserializing and Displaying Packet. ----
-				Communication::Packet rxPkt(recvBuffer);
+				InFlightCommunication::Packet rxPkt(recvBuffer);
 
 				rxPkt.DisplayInFlightSide(std::cout);
 
@@ -446,7 +446,7 @@ void Client::InFlightClient::receiveMessage() {
 	};
 };
 
-void Client::InFlightClient::Run() {
+void InFlightClient::InFlightClient::Run() {
 	char msg[] = "Connected";
 	sendMessage(0, &msg[0], sizeof(msg) - 1);
 	receiveMessage();
@@ -550,7 +550,7 @@ void Client::InFlightClient::Run() {
 	}
 };
 
-void Client::InFlightClient::Shutdown() {
+void InFlightClient::InFlightClient::Shutdown() {
 	this->isRunning = false;
 
 	// Here we are closing all the sockets.

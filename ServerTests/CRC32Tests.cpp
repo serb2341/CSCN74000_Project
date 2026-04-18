@@ -17,7 +17,7 @@ namespace ServerTests {
 			// CRC-32 of "ABC" is a well-known reference value.
 			const char input[] = { 'A', 'B', 'C' };
 
-			uint32_t result = Checksum::CRC32::Calculate(input, 3U);
+			uint32_t result = ServerChecksum::CRC32::Calculate(input, 3U);
 
 			Assert::AreEqual(static_cast<uint32_t>(0xA3830348U), result, L"CRC32 of 'ABC' must match the known reference value.");
 		};
@@ -26,7 +26,7 @@ namespace ServerTests {
 			// CRC-32 of "123456789" is the canonical self-test value (0xCBF43926).
 			const char input[] = { '1','2','3','4','5','6','7','8','9' };
 
-			uint32_t result = Checksum::CRC32::Calculate(input, 9U);
+			uint32_t result = ServerChecksum::CRC32::Calculate(input, 9U);
 
 			Assert::AreEqual(static_cast<uint32_t>(0xCBF43926U), result, L"CRC32 of '123456789' must equal the canonical 0xCBF43926.");
 		};
@@ -42,8 +42,8 @@ namespace ServerTests {
 
 			unsigned int len = static_cast<unsigned int>(sizeof(input) - 1U);
 
-			uint32_t first = Checksum::CRC32::Calculate(input, len);
-			uint32_t second = Checksum::CRC32::Calculate(input, len);
+			uint32_t first = ServerChecksum::CRC32::Calculate(input, len);
+			uint32_t second = ServerChecksum::CRC32::Calculate(input, len);
 
 			Assert::AreEqual(first, second, L"Checksum::CRC32::Calculate must be deterministic for the same input.");
 		};
@@ -53,8 +53,8 @@ namespace ServerTests {
 			const char inputA[] = "PacketA";
 			const char inputB[] = "PacketB";
 
-			uint32_t CRC_A = Checksum::CRC32::Calculate(inputA, 7U);
-			uint32_t CRC_B = Checksum::CRC32::Calculate(inputB, 7U);
+			uint32_t CRC_A = ServerChecksum::CRC32::Calculate(inputA, 7U);
+			uint32_t CRC_B = ServerChecksum::CRC32::Calculate(inputB, 7U);
 
 			Assert::AreNotEqual(CRC_A, CRC_B, L"Different inputs must not produce the same CRC-32.");
 		};
@@ -68,7 +68,7 @@ namespace ServerTests {
 			// Single byte input must not crash and must return a non-zero value.
 			const char input[] = { 0x42 };
 
-			uint32_t result = Checksum::CRC32::Calculate(input, 1U);
+			uint32_t result = ServerChecksum::CRC32::Calculate(input, 1U);
 
 			// Just verify it doesn't return 0 for a non-zero byte.
 			// a CRC of 0 on non-empty input would indicate a broken implementation.
@@ -79,7 +79,7 @@ namespace ServerTests {
 			// A buffer of zeroes should still produce a meaningful CRC (not 0).
 			char input[8] = {};
 
-			uint32_t result = Checksum::CRC32::Calculate(input, 8U);
+			uint32_t result = ServerChecksum::CRC32::Calculate(input, 8U);
 
 			Assert::AreNotEqual(static_cast<uint32_t>(0U), result, L"CRC-32 of an all-zero buffer must not be 0.");
 		};
@@ -94,7 +94,7 @@ namespace ServerTests {
 				input[i] = static_cast<char>(i % 256);
 			};
 
-			uint32_t result = Checksum::CRC32::Calculate(input, size);
+			uint32_t result = ServerChecksum::CRC32::Calculate(input, size);
 
 			delete[] input;
 			input = nullptr;
@@ -111,11 +111,11 @@ namespace ServerTests {
 
 			unsigned int len = 12U;
 
-			uint32_t original = Checksum::CRC32::Calculate(input, len);
+			uint32_t original = ServerChecksum::CRC32::Calculate(input, len);
 
 			input[5] ^= 0x01;   // Flip one bit
 
-			uint32_t corrupted = Checksum::CRC32::Calculate(input, len);
+			uint32_t corrupted = ServerChecksum::CRC32::Calculate(input, len);
 
 			Assert::AreNotEqual(original, corrupted, L"CRC-32 must change when any byte in the input is modified.");
 		};

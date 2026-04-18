@@ -1,10 +1,10 @@
 #include "Logger.h"
 
-Logging::Logger::Logger() {
+ServerLogging::Logger::Logger() {
 	this->isRunning = false;
 };
 
-Logging::Logger::~Logger() {
+ServerLogging::Logger::~Logger() {
 	this->Stop();
 };
 
@@ -12,7 +12,7 @@ Logging::Logger::~Logger() {
 //  Start / Stop
 // ============================================================
 
-bool Logging::Logger::Start(const std::string& logFilePath) {
+bool ServerLogging::Logger::Start(const std::string& logFilePath) {
 	bool isFileOpeningSuccessful = false;
 
 	this->file.open(logFilePath, std::ios::out | std::ios::app);
@@ -38,7 +38,7 @@ bool Logging::Logger::Start(const std::string& logFilePath) {
 	return isFileOpeningSuccessful;
 };
 
-void Logging::Logger::Stop() {
+void ServerLogging::Logger::Stop() {
 	{
 		std::lock_guard<std::mutex> lock(this->mutex);
 
@@ -63,7 +63,7 @@ void Logging::Logger::Stop() {
 //  Log — non-blocking enqueue
 // ============================================================
 
-void Logging::Logger::Log(const std::string& entry) {
+void ServerLogging::Logger::Log(const std::string& entry) {
 	std::lock_guard<std::mutex> lock(this->mutex);
 
 	bool shouldEnqueue = true;
@@ -88,7 +88,7 @@ void Logging::Logger::Log(const std::string& entry) {
 //  Logger thread — drains queue and writes to file
 // ============================================================
 
-void Logging::Logger::LoggerThreadFunc() {
+void ServerLogging::Logger::LoggerThreadFunc() {
 	while (true) {
 		std::unique_lock<std::mutex> lock(this->mutex);
 
@@ -143,7 +143,7 @@ void Logging::Logger::LoggerThreadFunc() {
 //  Formatting helpers
 // ============================================================
 
-unsigned long long Logging::Logger::ElapsedMs() const {
+unsigned long long ServerLogging::Logger::ElapsedMs() const {
 	auto now = std::chrono::steady_clock::now();
 
 	return static_cast<unsigned long long>(
@@ -151,7 +151,7 @@ unsigned long long Logging::Logger::ElapsedMs() const {
 	);
 };
 
-std::string Logging::Logger::TimestampPrefix() const {
+std::string ServerLogging::Logger::TimestampPrefix() const {
 	auto now = std::chrono::system_clock::now();
 
 	std::time_t now_c = std::chrono::system_clock::to_time_t(now);
@@ -180,7 +180,7 @@ std::string Logging::Logger::TimestampPrefix() const {
 	return oss.str();*/
 };
 
-void Logging::Logger::LogStateTransition(const std::string& entity, const std::string& fromState, const std::string& toState) {
+void ServerLogging::Logger::LogStateTransition(const std::string& entity, const std::string& fromState, const std::string& toState) {
 	std::ostringstream oss;
 
 	oss << this->TimestampPrefix() << " [STATE]		" << entity << ": " << fromState << " --> " << toState;
@@ -188,7 +188,7 @@ void Logging::Logger::LogStateTransition(const std::string& entity, const std::s
 	this->Log(oss.str());
 };
 
-void Logging::Logger::LogClientStateTransition(const std::string& clientName, const std::string& fromState, const std::string& toState) {
+void ServerLogging::Logger::LogClientStateTransition(const std::string& clientName, const std::string& fromState, const std::string& toState) {
 	std::ostringstream oss;
 
 	oss << this->TimestampPrefix() << " [STATE]		" << clientName << ": " << fromState << " --> " << toState;
@@ -196,7 +196,7 @@ void Logging::Logger::LogClientStateTransition(const std::string& clientName, co
 	this->Log(oss.str());
 };
 
-void Logging::Logger::LogHandshake(const std::string& source, const std::string& destination, const std::string& packetType, uint32_t value, const std::string& valueLabel) {
+void ServerLogging::Logger::LogHandshake(const std::string& source, const std::string& destination, const std::string& packetType, uint32_t value, const std::string& valueLabel) {
 	std::ostringstream oss;
 
 	oss << TimestampPrefix()
@@ -211,7 +211,7 @@ void Logging::Logger::LogHandshake(const std::string& source, const std::string&
 	Log(oss.str());
 };
 
-void Logging::Logger::LogSecurityException(const std::string& clientName, const std::string& reason) {
+void ServerLogging::Logger::LogSecurityException(const std::string& clientName, const std::string& reason) {
 	std::ostringstream oss;
 
 	oss << TimestampPrefix()
@@ -221,7 +221,7 @@ void Logging::Logger::LogSecurityException(const std::string& clientName, const 
 	Log(oss.str());
 };
 
-void Logging::Logger::LogPacket(const std::string& source, const std::string& destination, unsigned int flightID, unsigned int messageType, unsigned int length, uint32_t timeStamp, const char* buffer) {
+void ServerLogging::Logger::LogPacket(const std::string& source, const std::string& destination, unsigned int flightID, unsigned int messageType, unsigned int length, uint32_t timeStamp, const char* buffer) {
 	std::ostringstream oss;
 
 	oss << TimestampPrefix()
@@ -262,7 +262,7 @@ void Logging::Logger::LogPacket(const std::string& source, const std::string& de
 	this->Log(oss.str());
 };
 
-void Logging::Logger::LogDisconnect(const std::string& clientName) {
+void ServerLogging::Logger::LogDisconnect(const std::string& clientName) {
 	std::ostringstream oss;
 
 	oss << TimestampPrefix()
@@ -273,7 +273,7 @@ void Logging::Logger::LogDisconnect(const std::string& clientName) {
 };
 
 // Helper to convert raw bytes to Hex
-std::string Logging::Logger::ToHexString(const char* data, unsigned int length) {
+std::string ServerLogging::Logger::ToHexString(const char* data, unsigned int length) {
 	std::ostringstream oss;
 
 	for (unsigned int i = 0; i < length; ++i) {

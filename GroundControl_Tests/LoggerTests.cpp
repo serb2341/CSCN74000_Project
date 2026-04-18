@@ -34,7 +34,7 @@ public:
     {
         CleanupLogFile();
         {
-            Logging::Logger log(TEST_LOG_FILE);
+            GroundControlLogging::Logger log(TEST_LOG_FILE);
             // destructor closes file
         }
         std::ifstream f(TEST_LOG_FILE);
@@ -47,8 +47,8 @@ public:
     {
         CleanupLogFile();
         {
-            Logging::Logger log(TEST_LOG_FILE);
-            Communication::PacketHeader hdr{};
+            GroundControlLogging::Logger log(TEST_LOG_FILE);
+            GroundControlCommunication::PacketHeader hdr{};
             hdr.FlightID = 1u;
             hdr.MessageType = 0u;
             hdr.Length = 5u;
@@ -65,8 +65,8 @@ public:
     {
         CleanupLogFile();
         {
-            Logging::Logger log(TEST_LOG_FILE);
-            Communication::PacketHeader hdr{};
+            GroundControlLogging::Logger log(TEST_LOG_FILE);
+            GroundControlCommunication::PacketHeader hdr{};
             log.Log(42u, 99u, "SrcDestTest", hdr);
         }
         std::string content = ReadLogFile();
@@ -80,8 +80,8 @@ public:
     {
         CleanupLogFile();
         {
-            Logging::Logger log(TEST_LOG_FILE);
-            Communication::PacketHeader hdr{};
+            GroundControlLogging::Logger log(TEST_LOG_FILE);
+            GroundControlCommunication::PacketHeader hdr{};
             hdr.FlightID = 777u;
             log.Log(0u, 0u, "FlightTest", hdr);
         }
@@ -95,8 +95,8 @@ public:
     {
         CleanupLogFile();
         {
-            Logging::Logger log(TEST_LOG_FILE);
-            Communication::PacketHeader hdr{};
+            GroundControlLogging::Logger log(TEST_LOG_FILE);
+            GroundControlCommunication::PacketHeader hdr{};
             log.Log(1u, 2u, "MessageOne", hdr);
             log.Log(1u, 2u, "MessageTwo", hdr);
             log.Log(1u, 2u, "MessageThree", hdr);
@@ -113,13 +113,13 @@ public:
     {
         CleanupLogFile();
         {
-            Logging::Logger log1(TEST_LOG_FILE);
-            Communication::PacketHeader hdr{};
+            GroundControlLogging::Logger log1(TEST_LOG_FILE);
+            GroundControlCommunication::PacketHeader hdr{};
             log1.Log(1u, 2u, "First", hdr);
         }
         {
-            Logging::Logger log2(TEST_LOG_FILE);
-            Communication::PacketHeader hdr{};
+            GroundControlLogging::Logger log2(TEST_LOG_FILE);
+            GroundControlCommunication::PacketHeader hdr{};
             log2.Log(1u, 2u, "Second", hdr);
         }
         std::string content = ReadLogFile();
@@ -133,8 +133,8 @@ public:
     {
         CleanupLogFile();
         {
-            Logging::Logger log(TEST_LOG_FILE);
-            Communication::PacketHeader hdr{};
+            GroundControlLogging::Logger log(TEST_LOG_FILE);
+            GroundControlCommunication::PacketHeader hdr{};
             log.Log(0u, 0u, "", hdr);
         }
         // If we get here without crashing the test passes
@@ -147,8 +147,8 @@ public:
     {
         CleanupLogFile();
         {
-            Logging::Logger log(TEST_LOG_FILE);
-            Communication::PacketHeader hdr{};
+            GroundControlLogging::Logger log(TEST_LOG_FILE);
+            GroundControlCommunication::PacketHeader hdr{};
             hdr.FlightID = 10u;
             hdr.MessageType = 5u;
             hdr.Length = 20u;

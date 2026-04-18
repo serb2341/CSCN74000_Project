@@ -8,7 +8,7 @@
  * Constructor: Sets the initial state of the object by assigning the socket to an invalid
  * handle and ensuring the running status and ID tracking start at zero.
  */
-Client::GroundControlClient::GroundControlClient()
+GroundControlClient::GroundControlClient::GroundControlClient()
     : clientSocket(INVALID_SOCKET), isRunning(false), activeFlightID(0) {
 }
 
@@ -16,7 +16,7 @@ Client::GroundControlClient::GroundControlClient()
  * Destructor: Triggers the shutdown sequence to ensure that any active network
  * connections or system resources are released when the object is destroyed.
  */
-Client::GroundControlClient::~GroundControlClient() {
+GroundControlClient::GroundControlClient::~GroundControlClient() {
     Shutdown();
 }
 
@@ -24,7 +24,7 @@ Client::GroundControlClient::~GroundControlClient() {
  * Orchestrates the startup sequence by coordinating configuration loading,
  * network API initialization, and the establishment of the server connection.
  */
-bool Client::GroundControlClient::Initialize() {
+bool GroundControlClient::GroundControlClient::Initialize() {
     bool isClientInitialized = false;
 
     // Attempt to load the security credentials from the configuration file
@@ -52,11 +52,11 @@ bool Client::GroundControlClient::Initialize() {
  * Uses the Handshake helper to parse the configuration file and extract the
  * secret key required for the mutual authentication process.
  */
-bool Client::GroundControlClient::LoadConfig(const std::string& configPath) {
+bool GroundControlClient::GroundControlClient::LoadConfig(const std::string& configPath) {
     bool isConfigLoaded = false;
 
     // Extract the shared secret to be used during the validation handshake
-    sharedSecret = MutualVerification::Handshake::LoadSecret(configPath);
+    sharedSecret = GroundControlMutualVerification::Handshake::LoadSecret(configPath);
 
     // Stop initialization if the secret is missing to prevent unauthenticated access
     if (sharedSecret.empty()) {
@@ -72,7 +72,7 @@ bool Client::GroundControlClient::LoadConfig(const std::string& configPath) {
 
  // Performs the low-level WSAStartup call required to enable network functionality on Windows environments.
 
-bool Client::GroundControlClient::InitializeWinsock() {
+bool GroundControlClient::GroundControlClient::InitializeWinsock() {
     WSADATA wsaData;
     // Confirm the system can provide the requested Winsock 2.2 version
     return (WSAStartup(MAKEWORD(2, 2), &wsaData) == 0);
@@ -82,7 +82,7 @@ bool Client::GroundControlClient::InitializeWinsock() {
  * Configures the network address parameters and attempts to link the
  * local socket to the remote server endpoint.
  */
-bool Client::GroundControlClient::CreateSocket() {
+bool GroundControlClient::GroundControlClient::CreateSocket() {
     bool isSocketCreated = false;
 
     // Instantiate a TCP-based stream socket
@@ -117,9 +117,9 @@ bool Client::GroundControlClient::CreateSocket() {
  * Executes the security handshake required by the server to prove the
  * client's identity using a challenge-response mechanism.
  */
-void Client::GroundControlClient::ValidateConnection() {
+void GroundControlClient::GroundControlClient::ValidateConnection() {
     // Run the 4-packet exchange to verify both the server and the client
-    if (!MutualVerification::Handshake::Execute(clientSocket, sharedSecret)) {
+    if (!GroundControlMutualVerification::Handshake::Execute(clientSocket, sharedSecret)) {
         std::cerr << "[GC] Handshake failed. Connection is untrusted.\n";
         Shutdown();
     }
@@ -129,8 +129,8 @@ void Client::GroundControlClient::ValidateConnection() {
  * Encapsulates a text string into a formal packet structure, computes
  * its integrity checksum, and transmits the resulting data over the wire.
  */
-void Client::GroundControlClient::sendMessage(int messageType, const std::string& message) {
-    Communication::Packet txPkt;
+void GroundControlClient::GroundControlClient::sendMessage(int messageType, const std::string& message) {
+    GroundControlCommunication::Packet txPkt;
 
     // Populate the packet header with the target flight ID and message type
     txPkt.SetFlightID(activeFlightID);
@@ -152,11 +152,11 @@ void Client::GroundControlClient::sendMessage(int messageType, const std::string
  * Implements a multi-step reception process that dynamically adjusts to the
  * size of incoming packets, preventing memory overflows.
  */
-void Client::GroundControlClient::receiveMessage() {
+void GroundControlClient::GroundControlClient::receiveMessage() {
     bool shouldStopClient = false;
 
     // Retrieve the header to identify the packet type and length
-    char headerBuffer[sizeof(Communication::PacketHeader)];
+    char headerBuffer[sizeof(GroundControlCommunication::PacketHeader)];
     int bytes = recv(clientSocket, &headerBuffer[0], sizeof(headerBuffer), MSG_WAITALL);
 
     // Monitor the socket for disconnection or communication errors
@@ -166,19 +166,19 @@ void Client::GroundControlClient::receiveMessage() {
 
     else {
         // Process the header to capture the sender's ID and payload dimensions
-        Communication::PacketHeader head {};
-        (void)std::memcpy(&head, &headerBuffer[0], sizeof(Communication::PacketHeader));
+        GroundControlCommunication::PacketHeader head {};
+        (void)std::memcpy(&head, &headerBuffer[0], sizeof(GroundControlCommunication::PacketHeader));
         activeFlightID = head.FlightID;
 
         // Create a buffer on the heap sized for this specific packet (dynamic allocation)
-        unsigned int fullSize = sizeof(Communication::PacketHeader) + head.Length + sizeof(uint32_t);
+        unsigned int fullSize = sizeof(GroundControlCommunication::PacketHeader) + head.Length + sizeof(uint32_t);
         char* buffer = new char[fullSize];  //The data size is not known at compile time or object construction time and therefore dynamic memory needs to be used. Previous allocation is released before new allocation, preventing memory leaks.
 
         // Copy the existing header data into the beginning of the newly allocated buffer
-        (void)std::memcpy(buffer, &headerBuffer[0], sizeof(Communication::PacketHeader));
+        (void)std::memcpy(buffer, &headerBuffer[0], sizeof(GroundControlCommunication::PacketHeader));
 
         // Read the variable-length body and the trailing integrity check
-        bytes = recv(clientSocket, buffer + sizeof(Communication::PacketHeader), head.Length + sizeof(uint32_t), MSG_WAITALL); //-V2563
+        bytes = recv(clientSocket, buffer + sizeof(GroundControlCommunication::PacketHeader), head.Length + sizeof(uint32_t), MSG_WAITALL); //-V2563
 
         // If recv returns 0, the connection was closed gracefully by the server/airplane
         // If recv returns -1 (SOCKET_ERROR), the connection was lost or aborted
@@ -192,7 +192,7 @@ void Client::GroundControlClient::receiveMessage() {
         else {
             //  Confirm the packet arrived without corruption via a CRC check
             if (ValidatePacket(buffer)) {
-                Communication::Packet rxPkt(buffer);
+                GroundControlCommunication::Packet rxPkt(buffer);
                 std::string msgContent(rxPkt.GetData(), rxPkt.GetBodyLength());
 
                 // Divert telemetry data to a file while showing text on the console
@@ -233,15 +233,15 @@ void Client::GroundControlClient::receiveMessage() {
  * Verifies that the data received from the network matches the checksum
  * calculated by the sender, ensuring transmission accuracy.
  */
-bool Client::GroundControlClient::ValidatePacket(const char* buffer) const {
-    Communication::PacketHeader head;
-    (void)std::memcpy(&head, buffer, sizeof(Communication::PacketHeader));
+bool GroundControlClient::GroundControlClient::ValidatePacket(const char* buffer) const {
+    GroundControlCommunication::PacketHeader head;
+    (void)std::memcpy(&head, buffer, sizeof(GroundControlCommunication::PacketHeader));
 
     // Focus the CRC check on the header and body combined
-    unsigned int payloadSize = sizeof(Communication::PacketHeader) + head.Length;
+    unsigned int payloadSize = sizeof(GroundControlCommunication::PacketHeader) + head.Length;
 
     // Re-calculate the checksum locally using the same algorithm as the sender
-    uint32_t computed = Checksum::CRC32::Calculate(buffer, payloadSize);
+    uint32_t computed = GroundControlChecksum::CRC32::Calculate(buffer, payloadSize);
 
     // Retrieve the checksum that was appended to the packet by the sender
     uint32_t received;
@@ -255,7 +255,7 @@ bool Client::GroundControlClient::ValidatePacket(const char* buffer) const {
  * Manages the high-level communication flow, strictly enforcing that the
  * client waits for an airplane message before permitting a response.
  */
-void Client::GroundControlClient::Run() {
+void GroundControlClient::GroundControlClient::Run() {
     std::cout << "Waiting for In-Flight Client check-in...\n";
 
     while (isRunning) {
@@ -281,7 +281,7 @@ void Client::GroundControlClient::Run() {
  * Provides a safe cleanup mechanism for socket handles to prevent
  * attempts to use an already-closed connection.
  */
-void Client::GroundControlClient::CloseSocket(SOCKET* sock) {
+void GroundControlClient::GroundControlClient::CloseSocket(SOCKET* sock) {
     if (*sock != INVALID_SOCKET) {
         (void)closesocket(*sock);
         *sock = INVALID_SOCKET;
@@ -292,7 +292,7 @@ void Client::GroundControlClient::CloseSocket(SOCKET* sock) {
  * Coordinates the orderly termination of the client by stopping loops
  * and cleaning up the Winsock environment.
  */
-void Client::GroundControlClient::Shutdown() {
+void GroundControlClient::GroundControlClient::Shutdown() {
     isRunning = false;
     CloseSocket(&clientSocket);
     (void)WSACleanup();

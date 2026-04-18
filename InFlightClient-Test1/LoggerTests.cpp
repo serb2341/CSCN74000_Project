@@ -32,7 +32,7 @@ namespace InFlightClientTests
         std::remove("test_logger.txt");
 
         // Act
-        Logging::Logger logger(filename);
+        InFlightLogging::Logger logger(filename);
 
         std::ifstream file(filename);
         
@@ -46,10 +46,10 @@ namespace InFlightClientTests
         // Arrange
         const std::string filename = "test_logger.txt";
 
-        Logging::Logger logger_first(filename);
+        InFlightLogging::Logger logger_first(filename);
 
         // Act
-        Logging::Logger logger_second(filename);
+        InFlightLogging::Logger logger_second(filename);
 
         std::ifstream file(filename);
 
@@ -62,7 +62,7 @@ namespace InFlightClientTests
     {
         // Arrange
         const std::string filename = "test_logger.txt";
-        Logging::Logger logger(filename);
+        InFlightLogging::Logger logger(filename);
         const char msg[] = "LOG_TEST_MESSAGE";
 
         // Act
@@ -84,7 +84,7 @@ namespace InFlightClientTests
     {
         // Arrange
         const std::string filename = "test_logger.txt";
-        Logging::Logger logger(filename);
+        InFlightLogging::Logger logger(filename);
         const char msg[] = "";
 
         // Act
@@ -106,7 +106,7 @@ namespace InFlightClientTests
     {
         // Arrange
         const std::string filename = "test_logger.txt";
-        Logging::Logger logger(filename);
+        InFlightLogging::Logger logger(filename);
         const char msg1[] = "LOG1_TEST_MESSAGE";
         const char msg2[] = "LOG2_TEST_MESSAGE";
         const char msg3[] = "LOG3_TEST_MESSAGE";
@@ -134,7 +134,7 @@ namespace InFlightClientTests
     {
         // Arrange
         const std::string filename = "test_logger.txt";
-        Logging::Logger logger(filename);
+        InFlightLogging::Logger logger(filename);
         const char msg1[] = "LOG1_TEST_MESSAGE";
         const char msg2[] = "LOG2_TEST_MESSAGE";
         const char msg3[] = "LOG3_TEST_MESSAGE";

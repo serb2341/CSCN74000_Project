@@ -20,7 +20,8 @@
 #pragma comment(lib, "Ws2_32.lib")
 
 
-namespace Client {
+namespace GroundControlClient {
+
     class GroundControlClient {
         friend class Test_Handshake_Integration;
         friend class Test_PacketRelay_Integration;
@@ -39,7 +40,7 @@ namespace Client {
         unsigned int activeFlightID;
 
         // Logger instance 
-        Logging::Logger logger{ "groundcontrol_log.txt" };
+        GroundControlLogging::Logger logger{ "groundcontrol_log.txt" };
 
         // Private Helpers 
         bool LoadConfig(const std::string& configPath);

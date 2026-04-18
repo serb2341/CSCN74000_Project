@@ -3,6 +3,14 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+class Test_Handshake_Integration;
+class Test_PacketRelay_Integration;
+class Test_BidirectionalExchange_Integration;
+class Test_TelemetryPath_Integration;
+class Test_Disconnection_Integration;
+class Test_FlightID_Integration;
+class Test_HandshakeThenData_Integration;
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <Windows.h>
@@ -23,7 +31,7 @@
 
 namespace Networking {
 	// ============================================================
-//  Server-wide state — sequential lifecycle, one at a time.
+//  Server-wide state â€” sequential lifecycle, one at a time.
 // ============================================================
 
 
@@ -49,13 +57,13 @@ namespace Networking {
 	class Server {
 
 	// Required for using private methods in integration tests.
-	friend class Test_Handshake_Integration;
-	friend class Test_PacketRelay_Integration;
-	friend class Test_BidirectionalExchange_Integration;
-	friend class Test_TelemetryPath_Integration;
-	friend class Test_Disconnection_Integration;
-	friend class Test_FlightID_Integration;
-	friend class Test_HandshakeThenData_Integration;
+	friend class ::Test_Handshake_Integration;
+	friend class ::Test_PacketRelay_Integration;
+	friend class ::Test_BidirectionalExchange_Integration;
+	friend class ::Test_TelemetryPath_Integration;
+	friend class ::Test_Disconnection_Integration;
+	friend class ::Test_FlightID_Integration;
+	friend class ::Test_HandshakeThenData_Integration;
 
 	private:
 		SOCKET listeningSocket;
@@ -74,7 +82,7 @@ namespace Networking {
 		std::atomic<bool> groundControlConnected;
 		std::atomic<bool> airplaneConnected;
 
-		Logging::Logger logger;
+		ServerLogging::Logger logger;
 
 		std::string sharedSecret;			// Shared Secret key.
 		std::string logFilePath;

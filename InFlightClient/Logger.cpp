@@ -1,10 +1,6 @@
-#pragma once
-
 #include "Logger.h"
 
-
-
-Logging::Logger::Logger(const std::string& filename)
+InFlightLogging::Logger::Logger(const std::string& filename)
     {
         logFile.open(filename, std::ios::app);
 
@@ -14,7 +10,7 @@ Logging::Logger::Logger(const std::string& filename)
         }
     }
 
-Logging::Logger::~Logger()
+InFlightLogging::Logger::~Logger()
     {
         if (logFile.is_open())
         {
@@ -22,7 +18,7 @@ Logging::Logger::~Logger()
         }
     }
 
-void Logging::Logger::Log(const char* message, unsigned int size)
+void InFlightLogging::Logger::Log(const char* message, unsigned int size)
 {
     std::time_t now = std::time(nullptr);
     char timeStr[26];

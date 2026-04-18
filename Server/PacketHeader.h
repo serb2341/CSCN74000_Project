@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace Communication {
+namespace ServerCommunication {
 	struct PacketHeader {
 		unsigned int FlightID;
 		unsigned int MessageType;

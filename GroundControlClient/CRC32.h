@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace Checksum {
+namespace GroundControlChecksum {
 	class CRC32 {
 	private:
 		// This is a precomputed lookup table (256 entries) for fast CRC calculation.

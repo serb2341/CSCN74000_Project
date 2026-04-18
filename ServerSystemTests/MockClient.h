@@ -72,48 +72,48 @@ public:
     bool PerformHandshake()
     {
         // ---- Step 1: Send CHALLENGE ----
-        Handshake::ChallengePacket clientChallenge{};
-        clientChallenge.Type = static_cast<uint32_t>(Handshake::VerificationPacketType::CHALLENGE);
+        ServerHandshake::ChallengePacket clientChallenge{};
+        clientChallenge.Type = static_cast<uint32_t>(ServerHandshake::VerificationPacketType::CHALLENGE);
         clientChallenge.Random = 0xABCD1234U; // Fixed value for deterministic tests
-        clientChallenge.CRC32 = Checksum::CRC32::Calculate(
+        clientChallenge.CRC32 = ServerChecksum::CRC32::Calculate(
             reinterpret_cast<const char*>(&clientChallenge),
             sizeof(uint32_t) + sizeof(uint32_t));
 
         if (send(m_socket, reinterpret_cast<const char*>(&clientChallenge),
-            sizeof(Handshake::ChallengePacket), 0) != sizeof(Handshake::ChallengePacket))
+            sizeof(ServerHandshake::ChallengePacket), 0) != sizeof(ServerHandshake::ChallengePacket))
             return false;
 
         // ---- Step 2: Receive server RESPONSE, validate ----
-        Handshake::ResponsePacket serverResponse{};
+        ServerHandshake::ResponsePacket serverResponse{};
         if (recv(m_socket, reinterpret_cast<char*>(&serverResponse),
-            sizeof(Handshake::ResponsePacket), MSG_WAITALL) != sizeof(Handshake::ResponsePacket))
+            sizeof(ServerHandshake::ResponsePacket), MSG_WAITALL) != sizeof(ServerHandshake::ResponsePacket))
             return false;
 
-        if (static_cast<Handshake::VerificationPacketType>(serverResponse.Type) != Handshake::VerificationPacketType::RESPONSE)
+        if (static_cast<ServerHandshake::VerificationPacketType>(serverResponse.Type) != ServerHandshake::VerificationPacketType::RESPONSE)
             return false;
 
         uint32_t expectedSig = ComputeSignature(clientChallenge.Random);
         if (serverResponse.Signature != expectedSig) return false;
 
         // ---- Step 3: Receive server CHALLENGE ----
-        Handshake::ChallengePacket serverChallenge{};
+        ServerHandshake::ChallengePacket serverChallenge{};
         if (recv(m_socket, reinterpret_cast<char*>(&serverChallenge),
-            sizeof(Handshake::ChallengePacket), MSG_WAITALL) != sizeof(Handshake::ChallengePacket))
+            sizeof(ServerHandshake::ChallengePacket), MSG_WAITALL) != sizeof(ServerHandshake::ChallengePacket))
             return false;
 
-        if (static_cast<Handshake::VerificationPacketType>(serverChallenge.Type) != Handshake::VerificationPacketType::CHALLENGE)
+        if (static_cast<ServerHandshake::VerificationPacketType>(serverChallenge.Type) != ServerHandshake::VerificationPacketType::CHALLENGE)
             return false;
 
         // ---- Step 4: Send RESPONSE ----
-        Handshake::ResponsePacket clientResponse{};
-        clientResponse.Type = static_cast<uint32_t>(Handshake::VerificationPacketType::RESPONSE);
+        ServerHandshake::ResponsePacket clientResponse{};
+        clientResponse.Type = static_cast<uint32_t>(ServerHandshake::VerificationPacketType::RESPONSE);
         clientResponse.Signature = ComputeSignature(serverChallenge.Random);
-        clientResponse.CRC32 = Checksum::CRC32::Calculate(
+        clientResponse.CRC32 = ServerChecksum::CRC32::Calculate(
             reinterpret_cast<const char*>(&clientResponse),
             sizeof(uint32_t) + sizeof(uint32_t));
         
         if (send(m_socket, reinterpret_cast<const char*>(&clientResponse),
-            sizeof(Handshake::ResponsePacket), 0) != sizeof(Handshake::ResponsePacket))
+            sizeof(ServerHandshake::ResponsePacket), 0) != sizeof(ServerHandshake::ResponsePacket))
             return false;
 
         return true;
@@ -126,7 +126,7 @@ public:
         const char* body,
         unsigned int bodyLen)
     {
-        Communication::Packet pkt;
+        InFlightCommunication::Packet pkt;
         pkt.SetFlightID(flightID);
         pkt.SetMessageType(messageType);
         pkt.SetTimeStamp(1U);
@@ -156,14 +156,14 @@ public:
             reinterpret_cast<const char*>(&timeout), sizeof(timeout));
 
         // Phase 1: header
-        char headerBuf[sizeof(Communication::PacketHeader)];
-        std::memset(headerBuf, 0, sizeof(Communication::PacketHeader));
+        char headerBuf[sizeof(InFlightCommunication::PacketHeader)];
+        std::memset(headerBuf, 0, sizeof(InFlightCommunication::PacketHeader));
 
         int r = recv(m_socket, headerBuf, sizeof(headerBuf), MSG_WAITALL);
         if (r <= 0) return false;
 
-        Communication::PacketHeader hdr{};
-        std::memcpy(&hdr, headerBuf, sizeof(Communication::PacketHeader));
+        InFlightCommunication::PacketHeader hdr{};
+        std::memcpy(&hdr, headerBuf, sizeof(InFlightCommunication::PacketHeader));
 
         // Phase 2: body + CRC tail
         unsigned int remaining = hdr.Length + sizeof(uint32_t);
@@ -203,7 +203,7 @@ private:
     {
         std::string payload = m_sharedSecret;
         payload.append(reinterpret_cast<const char*>(&randomNumber), sizeof(uint32_t));
-        return Checksum::CRC32::Calculate(payload.c_str(),
+        return ServerChecksum::CRC32::Calculate(payload.c_str(),
             static_cast<unsigned int>(payload.size()));
     }
 };

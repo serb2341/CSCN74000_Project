@@ -3,7 +3,7 @@
 int main(int argc, char* argv[]) {
 	int status = -1;
 
-	Client::InFlightClient inflightclient;
+	InFlightClient::InFlightClient inflightclient;
 
 	if (argc < 2) {
 		std::cout << "[Client] Enter FlightID upon startup\n";

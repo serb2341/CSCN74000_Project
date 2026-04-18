@@ -36,7 +36,7 @@ namespace ServerTests {
         // --------------------------------------------------------
 
         TEST_METHOD(SVR_LOG_TEST_001_Start_ValidPath_ReturnsTrue) {
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
 
             const std::string path = "test_start.txt";
 
@@ -50,7 +50,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(SVR_LOG_TEST_002_Start_CreatesFile) {
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
 
             const std::string path = "test_creates.txt";
 
@@ -71,7 +71,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(SVR_LOG_TEST_003_Stop_CanBeCalledTwice_DoesNotCrash) {
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
             const std::string path = "test_doublestop.txt";
 
             logger.Start(path);
@@ -89,7 +89,7 @@ namespace ServerTests {
         // --------------------------------------------------------
 
         TEST_METHOD(SVR_LOG_TEST_004_Log_EntryAppearsInFile) {
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
 
             const std::string path = "test_entry.txt";
 
@@ -110,7 +110,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(SVR_LOG_TEST_005_Log_MultipleEntries_AllAppearInFile) {
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
 
             const std::string path = "test_multi.txt";
 
@@ -134,7 +134,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(SVR_LOG_TEST_006_Log_EntriesWrittenInOrder) {
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
 
             const std::string path = "test_order.txt";
 
@@ -165,7 +165,7 @@ namespace ServerTests {
         // --------------------------------------------------------
 
         TEST_METHOD(SVR_LOG_TEST_007_LogStateTransition_FieldsAppearInFile) {
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
 
             const std::string path = "test_state.txt";
 
@@ -187,7 +187,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(SVR_LOG_TEST_008_LogHandshake_FieldsAppearInFile) {
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
 
             const std::string path = "test_handshake.txt";
 
@@ -209,7 +209,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(SVR_LOG_TEST_009_LogSecurityException_FieldsAppearInFile) {
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
 
             const std::string path = "test_security.txt";
 
@@ -230,7 +230,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(SVR_LOG_TEST_010_LogPacket_AllFieldsAppearInFile) {
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
 
             const std::string path = "test_packet.txt";
 
@@ -251,7 +251,7 @@ namespace ServerTests {
         };
 
         TEST_METHOD(SVR_LOG_TEST_011_LogDisconnect_FieldsAppearInFile) {
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
 
             const std::string path = "test_disconnect.txt";
 
@@ -277,7 +277,7 @@ namespace ServerTests {
         TEST_METHOD(SVR_LOG_TEST_012_Log_DoesNotBlockCaller) {
             // The relay thread must not wait for file I/O.
             // Log() should return in well under 10ms even with 100 entries.
-            Logging::Logger logger;
+            ServerLogging::Logger logger;
 
             const std::string path = "test_nonblocking.txt";
 
