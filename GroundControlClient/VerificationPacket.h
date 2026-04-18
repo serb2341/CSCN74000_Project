@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace VerificationPacket {
+namespace GroundControlVerificationPacket {
 	// ============================================================
 //  Packet types used during the 4-packet mutual verification
 //  handshake. These are separate from the regular Packet class

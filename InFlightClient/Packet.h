@@ -4,7 +4,7 @@
 #include <fstream>
 #include <cstdint>
 
-namespace Communication {
+namespace InFlightCommunication {
 #pragma pack(push, 1)
 	struct PacketHeader {
 		unsigned int FlightID;		// Source ID.

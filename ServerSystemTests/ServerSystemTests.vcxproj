@@ -100,7 +100,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(SolutionDir)Server\$(Platform)\$(Configuration)\;$(SolutionDir)InFlightClient\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>CRC32.obj;Logger.obj;Server.obj;Packet.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)InFlightClient\x64\Debug\CRC32.obj;$(SolutionDir)InFlightClient\x64\Debug\Packet.obj;$(SolutionDir)Server\x64\Debug\CRC32.obj;$(SolutionDir)Server\x64\Debug\Logger.obj;$(SolutionDir)Server\x64\Debug\Server.obj;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -154,7 +154,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(SolutionDir)Server\$(Platform)\$(Configuration)\;$(SolutionDir)InFlightClient\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>CRC32.obj;Logger.obj;Server.obj;Packet.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)InFlightClient\x64\Debug\CRC32.obj;$(SolutionDir)InFlightClient\x64\Debug\Packet.obj;$(SolutionDir)Server\x64\Debug\CRC32.obj;$(SolutionDir)Server\x64\Debug\Logger.obj;$(SolutionDir)Server\x64\Debug\Server.obj;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -254,7 +254,7 @@ uint32_t Networking::Server::ComputeSignature(uint32_t randomNumber) const {
 
 	(void)payload.append(reinterpret_cast<const char*>(&randomNumber), sizeof(uint32_t));
 
-	return Checksum::CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
+	return ServerChecksum::CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
 };
 
 bool Networking::Server::PerformHandshake(SOCKET clientSocket, const std::string& clientName) {
@@ -263,17 +263,17 @@ bool Networking::Server::PerformHandshake(SOCKET clientSocket, const std::string
 	// ----------------------------------------------------------------
 	// STEP 1: Receive the client's CHALLENGE packet.
 	// ----------------------------------------------------------------
-	Handshake::ChallengePacket clientChallenge{};
+	ServerHandshake::ChallengePacket clientChallenge{};
 
-	int bytesReceived = recv(clientSocket, reinterpret_cast<char*>(&clientChallenge), sizeof(Handshake::ChallengePacket), MSG_WAITALL);
+	int bytesReceived = recv(clientSocket, reinterpret_cast<char*>(&clientChallenge), sizeof(ServerHandshake::ChallengePacket), MSG_WAITALL);
 
-	if (bytesReceived != sizeof(Handshake::ChallengePacket)) {
+	if (bytesReceived != sizeof(ServerHandshake::ChallengePacket)) {
 		this->logger.LogSecurityException(clientName, "Step 1: Failed to receive challenge packet.");
 
 		std::cerr << "[" << clientName << "] Handshake Step 1: Failed to receive challenge. Error: " << WSAGetLastError() << std::endl;
 	}
 
-	else if (static_cast<Handshake::VerificationPacketType>(clientChallenge.Type) != Handshake::VerificationPacketType::CHALLENGE) {
+	else if (static_cast<ServerHandshake::VerificationPacketType>(clientChallenge.Type) != ServerHandshake::VerificationPacketType::CHALLENGE) {
 		// Validating the challenge packet type.
 		this->logger.LogSecurityException(clientName, "Step 1: Unexpected packet type (expected CHALLENGE).");
 
@@ -282,7 +282,7 @@ bool Networking::Server::PerformHandshake(SOCKET clientSocket, const std::string
 
 	else {
 		// Validate CRC-32 of the challenge packet (covers Type + Random only)
-		uint32_t expectedChallengeCRC = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientChallenge), sizeof(uint32_t) + sizeof(uint32_t));			// Type + Random
+		uint32_t expectedChallengeCRC = ServerChecksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientChallenge), sizeof(uint32_t) + sizeof(uint32_t));			// Type + Random
 
 		if (clientChallenge.CRC32 != expectedChallengeCRC) {
 			this->logger.LogSecurityException(clientName, "Step 1: CRC-32 validation failed on challenge. Connection terminated.");
@@ -299,15 +299,15 @@ bool Networking::Server::PerformHandshake(SOCKET clientSocket, const std::string
 			// ----------------------------------------------------------------
 			// STEP 2: Send our RESPONSE — Hash(secret + client's random).
 			// ----------------------------------------------------------------
-			Handshake::ResponsePacket serverResponse{};
-			serverResponse.Type = static_cast<uint32_t>(Handshake::VerificationPacketType::RESPONSE);
+			ServerHandshake::ResponsePacket serverResponse{};
+			serverResponse.Type = static_cast<uint32_t>(ServerHandshake::VerificationPacketType::RESPONSE);
 			serverResponse.Signature = this->ComputeSignature(clientChallenge.Random);
 
-			serverResponse.CRC32 = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverResponse), (sizeof(uint32_t) + sizeof(uint32_t)));
+			serverResponse.CRC32 = ServerChecksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverResponse), (sizeof(uint32_t) + sizeof(uint32_t)));
 
-			int bytesSent = send(clientSocket, reinterpret_cast<const char*>(&serverResponse), sizeof(Handshake::ResponsePacket), 0);
+			int bytesSent = send(clientSocket, reinterpret_cast<const char*>(&serverResponse), sizeof(ServerHandshake::ResponsePacket), 0);
 
-			if (bytesSent != sizeof(Handshake::ResponsePacket)) {
+			if (bytesSent != sizeof(ServerHandshake::ResponsePacket)) {
 				this->logger.LogSecurityException(clientName, "Step 2: Failed to send response.");
 
 				std::cerr << "[" << clientName << "] Handshake Step 2: Failed to send response. Error: " << WSAGetLastError() << std::endl;
@@ -321,16 +321,16 @@ bool Networking::Server::PerformHandshake(SOCKET clientSocket, const std::string
 				// ----------------------------------------------------------------
 				// STEP 3: Send our CHALLENGE to the client.
 				// ----------------------------------------------------------------
-				Handshake::ChallengePacket serverChallenge{};
-				serverChallenge.Type = static_cast<uint32_t>(Handshake::VerificationPacketType::CHALLENGE);
+				ServerHandshake::ChallengePacket serverChallenge{};
+				serverChallenge.Type = static_cast<uint32_t>(ServerHandshake::VerificationPacketType::CHALLENGE);
 				serverChallenge.Random = static_cast<uint32_t>(rand());									// Server's random number.
 
 				// CRC-32 covers Type + Random
-				serverChallenge.CRC32 = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverChallenge), (sizeof(uint32_t) + sizeof(uint32_t)));		// Type + Random.
+				serverChallenge.CRC32 = ServerChecksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverChallenge), (sizeof(uint32_t) + sizeof(uint32_t)));		// Type + Random.
 
-				bytesSent = send(clientSocket, reinterpret_cast<const char*>(&serverChallenge), sizeof(Handshake::ChallengePacket), 0);
+				bytesSent = send(clientSocket, reinterpret_cast<const char*>(&serverChallenge), sizeof(ServerHandshake::ChallengePacket), 0);
 
-				if (bytesSent != sizeof(Handshake::ChallengePacket)) {
+				if (bytesSent != sizeof(ServerHandshake::ChallengePacket)) {
 					this->logger.LogSecurityException(clientName, "Step 3: Failed to send challenge.");
 
 					std::cerr << "[" << clientName << "] Handshake Step 3: Failed to send challenge. Error: " << WSAGetLastError() << std::endl;
@@ -344,17 +344,17 @@ bool Networking::Server::PerformHandshake(SOCKET clientSocket, const std::string
 					// -------------------------------------------------------------------
 					// STEP 4: Receive the client's RESPONSE and validate their signature.
 					// -------------------------------------------------------------------
-					Handshake::ResponsePacket clientResponse{};
+					ServerHandshake::ResponsePacket clientResponse{};
 
-					bytesReceived = recv(clientSocket, reinterpret_cast<char*>(&clientResponse), sizeof(Handshake::ResponsePacket), MSG_WAITALL);
+					bytesReceived = recv(clientSocket, reinterpret_cast<char*>(&clientResponse), sizeof(ServerHandshake::ResponsePacket), MSG_WAITALL);
 
-					if (bytesReceived != sizeof(Handshake::ResponsePacket)) {
+					if (bytesReceived != sizeof(ServerHandshake::ResponsePacket)) {
 						this->logger.LogSecurityException(clientName, "Step 4: Failed to receive response packet.");
 
 						std::cerr << "[" << clientName << "] Handshake Step 4: Failed to receive response. Error: " << WSAGetLastError() << std::endl;
 					}
 
-					else if (static_cast<Handshake::VerificationPacketType>(clientResponse.Type) != Handshake::VerificationPacketType::RESPONSE) {
+					else if (static_cast<ServerHandshake::VerificationPacketType>(clientResponse.Type) != ServerHandshake::VerificationPacketType::RESPONSE) {
 						// Validate the response packet type.
 						this->logger.LogSecurityException(clientName, "Step 4: Unexpected packet type (expected RESPONSE). Connection terminated.");
 
@@ -363,7 +363,7 @@ bool Networking::Server::PerformHandshake(SOCKET clientSocket, const std::string
 
 					else {
 						// Validate CRC-32 of the response packet (covers Type + Signature).
-						uint32_t expectedResponseCRC = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientResponse), (sizeof(uint32_t) + sizeof(uint32_t)));			// Type + Signature
+						uint32_t expectedResponseCRC = ServerChecksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientResponse), (sizeof(uint32_t) + sizeof(uint32_t)));			// Type + Signature
 
 						if (clientResponse.CRC32 != expectedResponseCRC) {
 							this->logger.LogSecurityException(clientName, "Step 4: CRC-32 validation failed on response. Connection terminated.");
@@ -415,9 +415,9 @@ void Networking::Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket
 		// ---- Phase 1: Receive the fixed-size header ----
 
 		// First we start with only receiving the Header of the data packet.
-		char headerBuffer[sizeof(Communication::PacketHeader)];
+		char headerBuffer[sizeof(ServerCommunication::PacketHeader)];
 
-		(void)std::memset(&headerBuffer[0], 0, sizeof(Communication::PacketHeader));
+		(void)std::memset(&headerBuffer[0], 0, sizeof(ServerCommunication::PacketHeader));
 
 		int bytesReceived = recv(sourceSocket, &headerBuffer[0], sizeof(headerBuffer), MSG_WAITALL);		// The flag tells Winsock to not return until all header bytes are here.
 
@@ -458,7 +458,7 @@ void Networking::Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket
 			break;
 		}
 
-		else if ((bytesReceived != sizeof(Communication::PacketHeader))) {
+		else if ((bytesReceived != sizeof(ServerCommunication::PacketHeader))) {
 			sourceDisconnected = true;   // Source gone or socket force-closed.
 
 			break;
@@ -472,20 +472,20 @@ void Networking::Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket
 		// ---- Phase 2: Read Length, allocate full buffer ----
 
 		// We serialize the Header.
-		Communication::PacketHeader pktHeader{};
+		ServerCommunication::PacketHeader pktHeader{};
 
-		(void)std::memcpy(&pktHeader, &headerBuffer[0], sizeof(Communication::PacketHeader));
+		(void)std::memcpy(&pktHeader, &headerBuffer[0], sizeof(ServerCommunication::PacketHeader));
 
 		// Initializing the total packet size.
-		unsigned int totalPktSize = sizeof(Communication::PacketHeader) + pktHeader.Length + sizeof(uint32_t);
+		unsigned int totalPktSize = sizeof(ServerCommunication::PacketHeader) + pktHeader.Length + sizeof(uint32_t);
 
 		// Allocating full buffer and Assembling full packet.
 		char* recvBuffer = new char[totalPktSize];  // The data size is not known at compile time or object construction time and therefore dynamic memory needs to be used.Previous allocation is released before new allocation, preventing memory leaks.
 
 		// Copying the already received Header.
-		(void)std::memcpy(recvBuffer, &headerBuffer[0], sizeof(Communication::PacketHeader));
+		(void)std::memcpy(recvBuffer, &headerBuffer[0], sizeof(ServerCommunication::PacketHeader));
 
-		bytesReceived = recv(sourceSocket, recvBuffer + sizeof(Communication::PacketHeader), (static_cast<int>(totalPktSize) - static_cast<int>(sizeof(Communication::PacketHeader))), MSG_WAITALL); //-V2563
+		bytesReceived = recv(sourceSocket, recvBuffer + sizeof(ServerCommunication::PacketHeader), (static_cast<int>(totalPktSize) - static_cast<int>(sizeof(ServerCommunication::PacketHeader))), MSG_WAITALL); //-V2563
 
 		if (bytesReceived == 0) {
 			std::cout << "[" << clientName << "] Client disconnected during body recv." << std::endl;
@@ -502,7 +502,7 @@ void Networking::Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket
 			break;
 		}
 
-		else if ((bytesReceived == SOCKET_ERROR) || (static_cast<unsigned int>(bytesReceived) != (static_cast<int>(totalPktSize) - static_cast<int>(sizeof(Communication::PacketHeader))))) {
+		else if ((bytesReceived == SOCKET_ERROR) || (static_cast<unsigned int>(bytesReceived) != (static_cast<int>(totalPktSize) - static_cast<int>(sizeof(ServerCommunication::PacketHeader))))) {
 			if (this->isRunning && this->groundControlConnected) {
 				std::cerr << "[" << clientName << "] Body recv() failed. Error: " << WSAGetLastError() << std::endl;
 
@@ -552,7 +552,7 @@ void Networking::Server::RelayLoop(SOCKET sourceSocket, SOCKET destinationSocket
 			pktHeader.MessageType,
 			pktHeader.Length,
 			pktHeader.TimeStamp,
-			recvBuffer + sizeof(Communication::PacketHeader)); //-V2563
+			recvBuffer + sizeof(ServerCommunication::PacketHeader)); //-V2563
 
 
 		// ---- Phase 4: TRANSMITTING — forward ----
@@ -647,17 +647,17 @@ bool Networking::Server::ValidatePacket(const char* buffer, unsigned int totalSi
 
 	// ---- Structural check ----
 	// totalSize must be at least Header + CRC tail (body can be zero length).
-	if (totalSize < (sizeof(Communication::PacketHeader) + sizeof(uint32_t))) {
+	if (totalSize < (sizeof(ServerCommunication::PacketHeader) + sizeof(uint32_t))) {
 		std::cerr << "[Validation] Packet too small to be valid." << std::endl;
 	}
 
 	else {
 		// Extracting the header to read Length.
-		Communication::PacketHeader pktHeader{};
-		(void)std::memcpy(&pktHeader, buffer, sizeof(Communication::PacketHeader));
+		ServerCommunication::PacketHeader pktHeader{};
+		(void)std::memcpy(&pktHeader, buffer, sizeof(ServerCommunication::PacketHeader));
 
 		// Verify the declared length matches the actual received size
-		unsigned int expectedSize = sizeof(Communication::PacketHeader) + pktHeader.Length + sizeof(uint32_t);
+		unsigned int expectedSize = sizeof(ServerCommunication::PacketHeader) + pktHeader.Length + sizeof(uint32_t);
 
 		if (totalSize != expectedSize) {
 			std::cerr << "[Validation] Structural mismatch: expected " << expectedSize << " bytes, got " << totalSize << " bytes." << std::endl;
@@ -666,9 +666,9 @@ bool Networking::Server::ValidatePacket(const char* buffer, unsigned int totalSi
 		else {
 			// ---- CRC-32 integrity check ----
 			// CRC-32 is computed over Header + Body (everything except the CRC tail itself)
-			unsigned int payloadSize = sizeof(Communication::PacketHeader) + pktHeader.Length;
+			unsigned int payloadSize = sizeof(ServerCommunication::PacketHeader) + pktHeader.Length;
 
-			uint32_t computedCRC = Checksum::CRC32::Calculate(buffer, payloadSize);
+			uint32_t computedCRC = ServerChecksum::CRC32::Calculate(buffer, payloadSize);
 
 			// The CRC tail sits at the very end of the buffer
 			uint32_t receivedCRC = 0U;

@@ -99,8 +99,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(SolutionDir)x64\Debug\Server.obj;$(SolutionDir)x64\Debug\GroundControlClient.obj;$(SolutionDir)x64\Debug\InFlightClient.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(SolutionDir)GroundControlClient\$(Platform)\$(Configuration)\;$(SolutionDir)InFlightClient\$(Platform)\$(Configuration)\;$(SolutionDir)Server\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>GroundControlClientSource.obj;$(SolutionDir)GroundControlClient\x64\Debug\CRC32.obj;$(SolutionDir)GroundControlClient\x64\Debug\Logger.obj;$(SolutionDir)GroundControlClient\x64\Debug\Packet.obj;InFlightClientSource.obj;$(SolutionDir)InFlightClient\x64\Debug\Packet.obj;$(SolutionDir)InFlightClient\x64\Debug\CRC32.obj;$(SolutionDir)InFlightClient\x64\Debug\Logger.obj;Server.obj;$(SolutionDir)Server\x64\Debug\CRC32.obj;$(SolutionDir)Server\x64\Debug\Logger.obj;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -155,8 +155,8 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(SolutionDir)x64\Debug\Server.obj;$(SolutionDir)x64\Debug\GroundControlClient.obj;$(SolutionDir)x64\Debug\InFlightClient.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(SolutionDir)GroundControlClient\$(Platform)\$(Configuration)\;$(SolutionDir)InFlightClient\$(Platform)\$(Configuration)\;$(SolutionDir)Server\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>GroundControlClientSource.obj;$(SolutionDir)GroundControlClient\x64\Debug\CRC32.obj;$(SolutionDir)GroundControlClient\x64\Debug\Logger.obj;$(SolutionDir)GroundControlClient\x64\Debug\Packet.obj;InFlightClientSource.obj;$(SolutionDir)InFlightClient\x64\Debug\Packet.obj;$(SolutionDir)InFlightClient\x64\Debug\CRC32.obj;$(SolutionDir)InFlightClient\x64\Debug\Logger.obj;Server.obj;$(SolutionDir)Server\x64\Debug\CRC32.obj;$(SolutionDir)Server\x64\Debug\Logger.obj;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

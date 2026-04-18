@@ -29,7 +29,7 @@ namespace InFlightClientTests
         uint32_t expected = 0xA3830348U;
 
         // Act
-        uint32_t actual = Checksum::CRC32::Calculate(data, 3U);
+        uint32_t actual = InFlightChecksum::CRC32::Calculate(data, 3U);
 
         // Assert
         EXPECT_EQ(actual, expected);
@@ -42,8 +42,8 @@ namespace InFlightClientTests
         const char data[] = "HELLO_WORLD";
 
         // Act
-        uint32_t crc1 = Checksum::CRC32::Calculate(data, strlen(data));
-        uint32_t crc2 = Checksum::CRC32::Calculate(data, strlen(data));
+        uint32_t crc1 = InFlightChecksum::CRC32::Calculate(data, strlen(data));
+        uint32_t crc2 = InFlightChecksum::CRC32::Calculate(data, strlen(data));
 
         // Assert
         EXPECT_EQ(crc1, crc2);
@@ -57,8 +57,8 @@ namespace InFlightClientTests
         const char b[] = "HELLO!";
 
         // Act
-        uint32_t crcA = Checksum::CRC32::Calculate(a, strlen(a));
-        uint32_t crcB = Checksum::CRC32::Calculate(b, strlen(b));
+        uint32_t crcA = InFlightChecksum::CRC32::Calculate(a, strlen(a));
+        uint32_t crcB = InFlightChecksum::CRC32::Calculate(b, strlen(b));
 
         // Assert
         EXPECT_NE(crcA, crcB);
@@ -68,7 +68,7 @@ namespace InFlightClientTests
     TEST(CRC32Tests, FLIGHT_CLT_CRC_TEST_004_EmptyBufferReturnsValidCRC)
     {
         // Arrange / Act
-        uint32_t crc = Checksum::CRC32::Calculate(nullptr, 0);
+        uint32_t crc = InFlightChecksum::CRC32::Calculate(nullptr, 0);
 
         // Assert
         EXPECT_EQ(crc, 0);
@@ -81,7 +81,7 @@ namespace InFlightClientTests
         const char data[] = { 0x42 };
 
         // Act
-        uint32_t crc = Checksum::CRC32::Calculate(data, 1U);
+        uint32_t crc = InFlightChecksum::CRC32::Calculate(data, 1U);
 
         // Assert
         EXPECT_NE(crc, 0U);
@@ -94,7 +94,7 @@ namespace InFlightClientTests
         const char data[8] = {};
 
         // Act
-        uint32_t crc = Checksum::CRC32::Calculate(data, 8U);
+        uint32_t crc = InFlightChecksum::CRC32::Calculate(data, 8U);
 
         // Assert
         EXPECT_NE(crc, 0U);
@@ -107,11 +107,11 @@ namespace InFlightClientTests
         char data[] = "HelloWorld";
 
         // Act
-        uint32_t crc1 = Checksum::CRC32::Calculate(data, strlen(data));
+        uint32_t crc1 = InFlightChecksum::CRC32::Calculate(data, strlen(data));
         
         data[5] ^= 0x01;
 
-        uint32_t crc2 = Checksum::CRC32::Calculate(data, strlen(data));
+        uint32_t crc2 = InFlightChecksum::CRC32::Calculate(data, strlen(data));
 
         // Assert
         EXPECT_NE(crc1, crc2);

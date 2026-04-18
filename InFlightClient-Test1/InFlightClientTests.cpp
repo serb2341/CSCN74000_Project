@@ -14,7 +14,7 @@ namespace InFlightClientTests
     // ------------------------------------------------------
     class InFlightClientTest : public ::testing::Test {
     protected:
-        Client::InFlightClient client;
+        InFlightClient::InFlightClient client;
 
         // Removes all of the created files at end of testing
         void TearDown() override {
@@ -31,7 +31,7 @@ namespace InFlightClientTests
     TEST_F(InFlightClientTest, FLIGHT_CLT_TEST_001_EmptySecretHandlesGracefully)
     {
         // Arrange
-        Client::InFlightClient client;
+        InFlightClient::InFlightClient client;
         uint32_t value = 12345;
 
         // Act / Assert
@@ -53,7 +53,7 @@ namespace InFlightClientTests
         std::string payload = "testkey123";
         payload.append(reinterpret_cast<const char*>(&randomValue), sizeof(uint32_t));
 
-        uint32_t expected = Checksum::CRC32::Calculate(
+        uint32_t expected = InFlightChecksum::CRC32::Calculate(
             payload.c_str(),
             static_cast<unsigned int>(payload.size())
         );
@@ -104,7 +104,7 @@ namespace InFlightClientTests
     TEST_F(InFlightClientTest, FLIGHT_CLT_TEST_005_NullBuffer_ReturnsFalse)
     {
         // Arrange
-        Client::InFlightClient client;
+        InFlightClient::InFlightClient client;
 
         // Act
         bool result = client.ValidatePacket(nullptr, 10);
@@ -138,7 +138,7 @@ namespace InFlightClientTests
     TEST_F(InFlightClientTest, FLIGHT_CLT_TEST_007_InitializeWinsock_Success)
     {
         // Arrange
-        Client::InFlightClient client;
+        InFlightClient::InFlightClient client;
 
         // Act
         bool result = client.InitializeWinsock();
@@ -155,7 +155,7 @@ namespace InFlightClientTests
     TEST_F(InFlightClientTest, FLIGHT_CLT_TEST_008_CreateSocket_ReturnsBool)
     {
         // Arrange
-        Client::InFlightClient client;
+        InFlightClient::InFlightClient client;
 
         // Act / Assert
         EXPECT_NO_THROW(client.CreateSocket());

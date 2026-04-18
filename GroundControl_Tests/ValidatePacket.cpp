@@ -22,7 +22,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 static std::vector<char> BuildRawPacket(unsigned int flightID, unsigned int msgType, const std::string& body)
 {
-    Communication::Packet pkt;
+    GroundControlCommunication::Packet pkt;
     pkt.SetFlightID(flightID);
     pkt.SetMessageType(msgType);
     pkt.SetTimeStamp(0u);
@@ -40,11 +40,11 @@ static std::vector<char> BuildRawPacket(unsigned int flightID, unsigned int msgT
 // Since the real method is private, we replicate the logic here for testing purposes (the main logic will be tested through integration testing)
 static bool ValidateRawPacket(const char* buffer)
 {
-    Communication::PacketHeader head{};
-    std::memcpy(&head, buffer, sizeof(Communication::PacketHeader));
+    GroundControlCommunication::PacketHeader head{};
+    std::memcpy(&head, buffer, sizeof(GroundControlCommunication::PacketHeader));
 
-    unsigned int payloadSize = sizeof(Communication::PacketHeader) + head.Length;
-    uint32_t computed = Checksum::CRC32::Calculate(buffer, payloadSize);
+    unsigned int payloadSize = sizeof(GroundControlCommunication::PacketHeader) + head.Length;
+    uint32_t computed = GroundControlChecksum::CRC32::Calculate(buffer, payloadSize);
 
     uint32_t received = 0u;
     std::memcpy(&received, buffer + payloadSize, sizeof(uint32_t));
@@ -71,7 +71,7 @@ namespace GroundControl_Tests
         {
             auto buf = BuildRawPacket(2u, 0u, "GoodData");
             // Corrupt a byte inside the body (after the header)
-            buf[sizeof(Communication::PacketHeader) + 2] ^= 0xFF;
+            buf[sizeof(GroundControlCommunication::PacketHeader) + 2] ^= 0xFF;
             Assert::IsFalse(ValidateRawPacket(buf.data()));
         }
 

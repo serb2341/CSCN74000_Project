@@ -13,7 +13,7 @@ namespace InFlightClientTests
     // ------------------------------------------------------
     class IntegrationTests : public ::testing::Test {
     protected:
-        Client::InFlightClient client;
+        InFlightClient::InFlightClient client;
 
         void TearDown() override {
             std::remove("test_logger.txt");
@@ -27,8 +27,8 @@ namespace InFlightClientTests
     TEST_F(IntegrationTests, FLIGHT_CLT_INT_TEST_001_Packet_RoundTrip_Serialize_Validate_Deserialize)
     {
         // Arrange
-        Client::InFlightClient client;
-        Communication::Packet original;
+        InFlightClient::InFlightClient client;
+        InFlightCommunication::Packet original;
 
         original.SetFlightID(42);
         original.SetMessageType(1);
@@ -40,7 +40,7 @@ namespace InFlightClientTests
         // Act
         char* buffer = original.SerializeData(size);
         bool valid = client.ValidatePacket(buffer, size);
-        Communication::Packet reconstructed(buffer);
+        InFlightCommunication::Packet reconstructed(buffer);
 
         // Assert
         EXPECT_TRUE(valid);
@@ -55,7 +55,7 @@ namespace InFlightClientTests
     TEST_F(IntegrationTests, FLIGHT_CLT_INT_TEST_002_Packet_CRC_Integrity_IsPreserved_Across_Serialize)
     {
         // Arrange
-        Communication::Packet pkt;
+        InFlightCommunication::Packet pkt;
         pkt.SetFlightID(7);
         pkt.SetMessageType(2);
         pkt.SetTimeStamp(111111);
@@ -68,10 +68,10 @@ namespace InFlightClientTests
 
         uint32_t extractedCRC = 0;
         std::memcpy(&extractedCRC,
-            buffer + sizeof(Communication::PacketHeader) + pkt.GetBodyLength(),
+            buffer + sizeof(InFlightCommunication::PacketHeader) + pkt.GetBodyLength(),
             sizeof(uint32_t));
 
-        Communication::Packet temp(buffer);
+        InFlightCommunication::Packet temp(buffer);
         uint32_t computedCRC = temp.CalculateCRC();
 
         // Assert
@@ -82,7 +82,7 @@ namespace InFlightClientTests
     TEST_F(IntegrationTests, FLIGHT_CLT_INT_TEST_003_ValidatePacket_ValidPacket_ReturnsTrue)
     {
         // Arrange
-        Communication::Packet pkt;
+        InFlightCommunication::Packet pkt;
         pkt.SetFlightID(101);
         pkt.SetMessageType(1);
         pkt.SetTimeStamp(123456);
@@ -102,7 +102,7 @@ namespace InFlightClientTests
     TEST_F(IntegrationTests, FLIGHT_CLT_INT_TEST_004_ValidatePacket_BadLength_ReturnsFalse)
     {
         // Arrange
-        Communication::Packet pkt;
+        InFlightCommunication::Packet pkt;
         pkt.SetFlightID(101);
         pkt.SetMessageType(1);
         pkt.SetTimeStamp(123456);
@@ -122,7 +122,7 @@ namespace InFlightClientTests
     TEST_F(IntegrationTests, FLIGHT_CLT_INT_TEST_005_ValidatePacket_BadCRC_ReturnsFalse)
     {
         // Arrange
-        Communication::Packet pkt;
+        InFlightCommunication::Packet pkt;
         pkt.SetFlightID(101);
         pkt.SetMessageType(1);
         pkt.SetTimeStamp(123456);
@@ -146,8 +146,8 @@ namespace InFlightClientTests
         const std::string filename = "integration_log.txt";
         std::remove(filename.c_str());
 
-        Logging::Logger logger(filename);
-        Communication::Packet pkt;
+        InFlightLogging::Logger logger(filename);
+        InFlightCommunication::Packet pkt;
         pkt.SetData("LOG_THIS_MESSAGE", 16);
 
         unsigned int size = 0;
@@ -173,7 +173,7 @@ namespace InFlightClientTests
     TEST_F(IntegrationTests, FLIGHT_CLT_INT_TEST_007_Client_LoadConfig_And_ComputeSignature_WorkTogether)
     {
         // Arrange
-        Client::InFlightClient client;
+        InFlightClient::InFlightClient client;
 
         std::ofstream file("integration_config.txt");
         file << "SECRET=integrationkey";
@@ -194,11 +194,11 @@ namespace InFlightClientTests
     TEST_F(IntegrationTests, FLIGHT_CLT_INT_TEST_008_FullPipeline_Packet_IsValidated_And_Logged)
     {
         // Arrange
-        Client::InFlightClient client;
+        InFlightClient::InFlightClient client;
         const std::string logFile = "pipeline_log.txt";
 
-        Logging::Logger logger(logFile);
-        Communication::Packet pkt;
+        InFlightLogging::Logger logger(logFile);
+        InFlightCommunication::Packet pkt;
         pkt.SetData("PIPELINE_TEST", 13);
 
         unsigned int size = 0;
@@ -224,7 +224,7 @@ namespace InFlightClientTests
     TEST_F(IntegrationTests, FLIGHT_CLT_INT_TEST_009_SerializeData_ReturnsValidBuffer)
     {
         // Arrange
-        Communication::Packet pkt;
+        InFlightCommunication::Packet pkt;
         const char input[] = "TESTDATA";
         unsigned int size = sizeof(input) - 1;
 
@@ -235,12 +235,12 @@ namespace InFlightClientTests
         // Act
         char* buffer = pkt.SerializeData(totalSize);
 
-        Communication::PacketHeader header{};
-        std::memcpy(&header, buffer, sizeof(Communication::PacketHeader));
+        InFlightCommunication::PacketHeader header{};
+        std::memcpy(&header, buffer, sizeof(InFlightCommunication::PacketHeader));
 
         // Assert
         ASSERT_NE(buffer, nullptr);
-        EXPECT_GT(totalSize, sizeof(Communication::PacketHeader));
+        EXPECT_GT(totalSize, sizeof(InFlightCommunication::PacketHeader));
         EXPECT_EQ(header.Length, size);
     }
 }

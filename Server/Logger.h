@@ -12,7 +12,7 @@
 #include <iomanip>
 #include <cstdint>
 
-namespace Logging {
+namespace ServerLogging {
 	// Maximum number of entries the queue can hold before drops occur.
 	static const unsigned int LOG_QUEUE_MAX = 500U;
 

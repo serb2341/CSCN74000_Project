@@ -13,7 +13,7 @@
 #include <ctime>
 #include "Packet.h"
 
-namespace Logging {
+namespace InFlightLogging {
     class Logger {
     private:
         std::ofstream logFile;

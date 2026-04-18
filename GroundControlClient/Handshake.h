@@ -8,14 +8,14 @@
 
 #define SECRET_KEY_WORDING "SECRET"
 
-namespace MutualVerification {
+namespace GroundControlMutualVerification {
     class Handshake {
     private:
         // Helper to compute the expected signature (Secret + Random Number)
         static uint32_t ComputeSignature(uint32_t random, const std::string& secret) {
             std::string payload = secret;
             (void)payload.append(reinterpret_cast<const char*>(&random), sizeof(uint32_t));
-            return Checksum::CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
+            return GroundControlChecksum::CRC32::Calculate(payload.c_str(), static_cast<unsigned int>(payload.size()));
         }
 
     public:
@@ -25,14 +25,14 @@ namespace MutualVerification {
             // ----------------------------------------------------------------
             // STEP 1: Send the client's CHALLENGE packet.
             // ----------------------------------------------------------------
-            VerificationPacket::ChallengePacket clientChallenge{};
-            clientChallenge.Type = static_cast<uint32_t>(VerificationPacket::VerificationPacketType::CHALLENGE);
+            GroundControlVerificationPacket::ChallengePacket clientChallenge{};
+            clientChallenge.Type = static_cast<uint32_t>(GroundControlVerificationPacket::VerificationPacketType::CHALLENGE);
             clientChallenge.Random = static_cast<uint32_t>(rand());
             // CRC-32 covers Type + Random (8 bytes)
-            clientChallenge.CRC32 = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientChallenge), sizeof(uint32_t) + sizeof(uint32_t));
+            clientChallenge.CRC32 = GroundControlChecksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientChallenge), sizeof(uint32_t) + sizeof(uint32_t));
 
-            int bytesSent = send(clientSocket, reinterpret_cast<const char*>(&clientChallenge), sizeof(VerificationPacket::ChallengePacket), 0);
-            if (bytesSent != sizeof(VerificationPacket::ChallengePacket)) {
+            int bytesSent = send(clientSocket, reinterpret_cast<const char*>(&clientChallenge), sizeof(GroundControlVerificationPacket::ChallengePacket), 0);
+            if (bytesSent != sizeof(GroundControlVerificationPacket::ChallengePacket)) {
                 std::cerr << "[Handshake] Step 1: Failed to send challenge. Error: " << WSAGetLastError() << std::endl;
             }
 
@@ -42,21 +42,21 @@ namespace MutualVerification {
                 // ----------------------------------------------------------------
                 // STEP 2: Receive the Server's RESPONSE and validate signature.
                 // ----------------------------------------------------------------
-                VerificationPacket::ResponsePacket serverResponse{};
-                int bytesReceived = recv(clientSocket, reinterpret_cast<char*>(&serverResponse), sizeof(VerificationPacket::ResponsePacket), MSG_WAITALL);
+                GroundControlVerificationPacket::ResponsePacket serverResponse{};
+                int bytesReceived = recv(clientSocket, reinterpret_cast<char*>(&serverResponse), sizeof(GroundControlVerificationPacket::ResponsePacket), MSG_WAITALL);
 
-                if (bytesReceived != sizeof(VerificationPacket::ResponsePacket)) {
+                if (bytesReceived != sizeof(GroundControlVerificationPacket::ResponsePacket)) {
                     std::cerr << "[Handshake] Step 2: Failed to receive response. Error: " << WSAGetLastError() << std::endl;
                 }
 
-                else if (static_cast<VerificationPacket::VerificationPacketType>(serverResponse.Type) != VerificationPacket::VerificationPacketType::RESPONSE) {
+                else if (static_cast<GroundControlVerificationPacket::VerificationPacketType>(serverResponse.Type) != GroundControlVerificationPacket::VerificationPacketType::RESPONSE) {
                     // Validate Type
                     std::cerr << "[Handshake] Step 2: Unexpected packet type." << std::endl;
                 }
 
                 else {
                     // Validate CRC-32 (Type + Signature)
-                    uint32_t expectedSvrResponseCRC = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverResponse), sizeof(uint32_t) + sizeof(uint32_t));
+                    uint32_t expectedSvrResponseCRC = GroundControlChecksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverResponse), sizeof(uint32_t) + sizeof(uint32_t));
 
                     if (serverResponse.CRC32 != expectedSvrResponseCRC) {
                         std::cerr << "[Handshake] Step 2: CRC-32 validation failed." << std::endl;
@@ -76,21 +76,21 @@ namespace MutualVerification {
                             // ----------------------------------------------------------------
                             // STEP 3: Receive the Server's CHALLENGE.
                             // ----------------------------------------------------------------
-                            VerificationPacket::ChallengePacket serverChallenge{};
-                            bytesReceived = recv(clientSocket, reinterpret_cast<char*>(&serverChallenge), sizeof(VerificationPacket::ChallengePacket), MSG_WAITALL);
+                            GroundControlVerificationPacket::ChallengePacket serverChallenge{};
+                            bytesReceived = recv(clientSocket, reinterpret_cast<char*>(&serverChallenge), sizeof(GroundControlVerificationPacket::ChallengePacket), MSG_WAITALL);
 
-                            if (bytesReceived != sizeof(VerificationPacket::ChallengePacket)) {
+                            if (bytesReceived != sizeof(GroundControlVerificationPacket::ChallengePacket)) {
                                 std::cerr << "[Handshake] Step 3: Failed to receive server challenge. Error: " << WSAGetLastError() << std::endl;
                             }
 
-                            else if (static_cast<VerificationPacket::VerificationPacketType>(serverChallenge.Type) != VerificationPacket::VerificationPacketType::CHALLENGE) {
+                            else if (static_cast<GroundControlVerificationPacket::VerificationPacketType>(serverChallenge.Type) != GroundControlVerificationPacket::VerificationPacketType::CHALLENGE) {
                                 // Validate Type
                                 std::cerr << "[Handshake] Step 3: Unexpected packet type." << std::endl;
                             }
 
                             else {
                                 // Validate CRC-32
-                                uint32_t expectedSvrChallengeCRC = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverChallenge), sizeof(uint32_t) + sizeof(uint32_t));
+                                uint32_t expectedSvrChallengeCRC = GroundControlChecksum::CRC32::Calculate(reinterpret_cast<const char*>(&serverChallenge), sizeof(uint32_t) + sizeof(uint32_t));
 
                                 if (serverChallenge.CRC32 != expectedSvrChallengeCRC) {
                                     std::cerr << "[Handshake] Step 3: CRC-32 validation failed." << std::endl;
@@ -102,14 +102,14 @@ namespace MutualVerification {
                                     // ----------------------------------------------------------------
                                     // STEP 4: Send the client's RESPONSE.
                                     // ----------------------------------------------------------------
-                                    VerificationPacket::ResponsePacket clientResponse{};
-                                    clientResponse.Type = static_cast<uint32_t>(VerificationPacket::VerificationPacketType::RESPONSE);
+                                    GroundControlVerificationPacket::ResponsePacket clientResponse{};
+                                    clientResponse.Type = static_cast<uint32_t>(GroundControlVerificationPacket::VerificationPacketType::RESPONSE);
                                     clientResponse.Signature = ComputeSignature(serverChallenge.Random, sharedSecret);
-                                    clientResponse.CRC32 = Checksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientResponse), sizeof(uint32_t) + sizeof(uint32_t));
+                                    clientResponse.CRC32 = GroundControlChecksum::CRC32::Calculate(reinterpret_cast<const char*>(&clientResponse), sizeof(uint32_t) + sizeof(uint32_t));
 
-                                    bytesSent = send(clientSocket, reinterpret_cast<const char*>(&clientResponse), sizeof(VerificationPacket::ResponsePacket), 0);
+                                    bytesSent = send(clientSocket, reinterpret_cast<const char*>(&clientResponse), sizeof(GroundControlVerificationPacket::ResponsePacket), 0);
 
-                                    if (bytesSent != sizeof(VerificationPacket::ResponsePacket)) {
+                                    if (bytesSent != sizeof(GroundControlVerificationPacket::ResponsePacket)) {
                                         std::cerr << "[Handshake] Step 4: Failed to send response. Error: " << WSAGetLastError() << std::endl;
                                     }
 

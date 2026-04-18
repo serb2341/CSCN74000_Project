@@ -16,7 +16,7 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
-namespace Client {
+namespace InFlightClient {
 	class InFlightClient {
 	friend class Test_Handshake_Integration;
 	friend class Test_PacketRelay_Integration;
@@ -36,7 +36,7 @@ namespace Client {
 
 		int flightID;
 
-		Logging::Logger logger{ "inflightclient_log.txt" };
+		InFlightLogging::Logger logger{ "inflightclient_log.txt" };
 
 	public:
 		InFlightClient();

@@ -25,7 +25,7 @@ namespace InFlightClientTests
     TEST(PacketTests, FLIGHT_CLT_PKT_TEST_001_SetData_StoresCorrectLength)
     {
         // Arrange
-        Communication::Packet pkt;
+        InFlightCommunication::Packet pkt;
 
         const char input[] = "HELLO";
         unsigned int size = sizeof(input) - 1;
@@ -42,7 +42,7 @@ namespace InFlightClientTests
     TEST(PacketTests, FLIGHT_CLT_PKT_TEST_002_SetData_StoresNullInput)
     {
         // Arrange
-        Communication::Packet pkt;
+        InFlightCommunication::Packet pkt;
 
         const char input[] = "";
         unsigned int size = sizeof(input);
@@ -66,7 +66,7 @@ namespace InFlightClientTests
         size_t expectedSize = 16U;
 
         // Act
-        size_t actualSize = sizeof(Communication::PacketHeader);
+        size_t actualSize = sizeof(InFlightCommunication::PacketHeader);
 
         // Assert
         EXPECT_EQ(expectedSize, actualSize);
@@ -76,7 +76,7 @@ namespace InFlightClientTests
     TEST(PacketTests, FLIGHT_CLT_PKT_TEST_004_PacketHeader_HeaderOffset0Bytes_FlightID)
     {
         // Arrange
-        Communication::PacketHeader header{};
+        InFlightCommunication::PacketHeader header{};
         size_t expectedSize = 0U;
 
         // Act
@@ -90,7 +90,7 @@ namespace InFlightClientTests
     TEST(PacketTests, FLIGHT_CLT_PKT_TEST_005_PacketHeader_HeaderOffset4Bytes_MessageType)
     {
         // Arrange
-        Communication::PacketHeader header{};
+        InFlightCommunication::PacketHeader header{};
         size_t expectedSize = 4U;
 
         // Act
@@ -104,7 +104,7 @@ namespace InFlightClientTests
     TEST(PacketTests, FLIGHT_CLT_PKT_TEST_006_PacketHeader_HeaderOffset12Bytes_Length)
     {
         // Arrange
-        Communication::PacketHeader header{};
+        InFlightCommunication::PacketHeader header{};
         size_t expectedSize = 8U;
 
         // Act
@@ -118,7 +118,7 @@ namespace InFlightClientTests
     TEST(PacketTests, FLIGHT_CLT_PKT_TEST_007_PacketHeader_HeaderOffset12Bytes_TimeStamp)
     {
         // Arrange
-        Communication::PacketHeader header{};
+        InFlightCommunication::PacketHeader header{};
         size_t expectedSize = 12U;
 
         // Act
@@ -136,7 +136,7 @@ namespace InFlightClientTests
     TEST(PacketTests, FLIGHT_CLT_PKT_TEST_008_CopyConstructor_CreatesDeepCopy)
     {
         // Arrange
-        Communication::Packet pkt;
+        InFlightCommunication::Packet pkt;
 
         const char data[] = "COPY_TEST";
         unsigned int size = sizeof(data) - 1;
@@ -144,7 +144,7 @@ namespace InFlightClientTests
         pkt.SetData(data, size);
 
         // Act
-        Communication::Packet copy(pkt);
+        InFlightCommunication::Packet copy(pkt);
 
         // Assert
         EXPECT_EQ(copy.GetBodyLength(), pkt.GetBodyLength());
@@ -160,8 +160,8 @@ namespace InFlightClientTests
     TEST(PacketTests, FLIGHT_CLT_PKT_TEST_009_AssignmentOperator_DeepCopiesData)
     {
         // Arrange
-        Communication::Packet a;
-        Communication::Packet b;
+        InFlightCommunication::Packet a;
+        InFlightCommunication::Packet b;
 
         const char data[] = "ASSIGN_TEST";
         unsigned int size = sizeof(data) - 1;

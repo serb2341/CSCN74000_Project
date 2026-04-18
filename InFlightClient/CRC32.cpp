@@ -5,7 +5,7 @@
 //  (reversed representation of IEEE 802.3 polynomial 0x04C11DB7)
 // ============================================================
 
-namespace Checksum {
+namespace InFlightChecksum {
     const uint32_t CRC32::s_table[256] = {
     0x00000000U, 0x77073096U, 0xEE0E612CU, 0x990951BAU,
     0x076DC419U, 0x706AF48FU, 0xE963A535U, 0x9E6495A3U,

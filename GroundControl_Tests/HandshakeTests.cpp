@@ -34,7 +34,7 @@ namespace GroundControl_Tests
         TEST_METHOD(LoadSecret_ValidConfig_ReturnsSecret)
         {
             std::string path = WriteTempConfig("SECRET=mysecretkey\n");
-            std::string secret = MutualVerification::Handshake::LoadSecret(path);
+            std::string secret = GroundControlMutualVerification::Handshake::LoadSecret(path);
             Assert::AreEqual(std::string("mysecretkey"), secret);
         }
 
@@ -42,7 +42,7 @@ namespace GroundControl_Tests
         TEST_METHOD(LoadSecret_CommentLines_SkipsThemAndFindsSecret)
         {
             std::string path = WriteTempConfig("# This is a comment\nSECRET=abc123\n");
-            std::string secret = MutualVerification::Handshake::LoadSecret(path);
+            std::string secret = GroundControlMutualVerification::Handshake::LoadSecret(path);
             Assert::AreEqual(std::string("abc123"), secret);
         }
 
@@ -50,7 +50,7 @@ namespace GroundControl_Tests
         TEST_METHOD(LoadSecret_BlankLinesBeforeSecret_StillFindsSecret)
         {
             std::string path = WriteTempConfig("\n\nSECRET=blanktest\n");
-            std::string secret = MutualVerification::Handshake::LoadSecret(path);
+            std::string secret = GroundControlMutualVerification::Handshake::LoadSecret(path);
             Assert::AreEqual(std::string("blanktest"), secret);
         }
 
@@ -58,7 +58,7 @@ namespace GroundControl_Tests
         TEST_METHOD(LoadSecret_OtherKeysPresent_FindsCorrectKey)
         {
             std::string path = WriteTempConfig("HOST=localhost\nPORT=54000\nSECRET=rightkey\n");
-            std::string secret = MutualVerification::Handshake::LoadSecret(path);
+            std::string secret = GroundControlMutualVerification::Handshake::LoadSecret(path);
             Assert::AreEqual(std::string("rightkey"), secret);
         }
 
@@ -66,14 +66,14 @@ namespace GroundControl_Tests
         TEST_METHOD(LoadSecret_MissingKey_ReturnsEmpty)
         {
             std::string path = WriteTempConfig("HOST=localhost\nPORT=54000\n");
-            std::string secret = MutualVerification::Handshake::LoadSecret(path);
+            std::string secret = GroundControlMutualVerification::Handshake::LoadSecret(path);
             Assert::IsTrue(secret.empty());
         }
 
         // File does not exist → should return empty string (not crash)
         TEST_METHOD(LoadSecret_NonexistentFile_ReturnsEmpty)
         {
-            std::string secret = MutualVerification::Handshake::LoadSecret("does_not_exist_xyz.txt");
+            std::string secret = GroundControlMutualVerification::Handshake::LoadSecret("does_not_exist_xyz.txt");
             Assert::IsTrue(secret.empty());
         }
 
@@ -81,7 +81,7 @@ namespace GroundControl_Tests
         TEST_METHOD(LoadSecret_EmptyFile_ReturnsEmpty)
         {
             std::string path = WriteTempConfig("");
-            std::string secret = MutualVerification::Handshake::LoadSecret(path);
+            std::string secret = GroundControlMutualVerification::Handshake::LoadSecret(path);
             Assert::IsTrue(secret.empty());
         }
 
@@ -89,7 +89,7 @@ namespace GroundControl_Tests
         TEST_METHOD(LoadSecret_EmptyValue_ReturnsEmptyString)
         {
             std::string path = WriteTempConfig("SECRET=\n");
-            std::string secret = MutualVerification::Handshake::LoadSecret(path);
+            std::string secret = GroundControlMutualVerification::Handshake::LoadSecret(path);
             Assert::IsTrue(secret.empty());
         }
 
@@ -97,7 +97,7 @@ namespace GroundControl_Tests
         TEST_METHOD(LoadSecret_PartialKeyMatch_DoesNotMatch)
         {
             std::string path = WriteTempConfig("SECRETKEY=shouldnotmatch\n");
-            std::string secret = MutualVerification::Handshake::LoadSecret(path);
+            std::string secret = GroundControlMutualVerification::Handshake::LoadSecret(path);
             // "SECRETKEY" != "SECRET", so should return empty
             Assert::IsTrue(secret.empty());
         }
@@ -106,7 +106,7 @@ namespace GroundControl_Tests
         TEST_METHOD(LoadSecret_DuplicateKeys_ReturnsFirst)
         {
             std::string path = WriteTempConfig("SECRET=first\nSECRET=second\n");
-            std::string secret = MutualVerification::Handshake::LoadSecret(path);
+            std::string secret = GroundControlMutualVerification::Handshake::LoadSecret(path);
             Assert::AreEqual(std::string("first"), secret);
         }
     };

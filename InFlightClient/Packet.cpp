@@ -2,7 +2,7 @@
 #include "CRC32.h"
 
 // Constructor.
-Communication::Packet::Packet() {
+InFlightCommunication::Packet::Packet() {
 	this->data = nullptr;
 
 	this->txBuffer = nullptr;
@@ -12,7 +12,7 @@ Communication::Packet::Packet() {
 	(void)std::memset(&(this->pktHead), 0, sizeof(PacketHeader));
 };
 
-Communication::Packet::Packet(const char* src) {
+InFlightCommunication::Packet::Packet(const char* src) {
 	this->data = nullptr;
 
 	this->txBuffer = nullptr;
@@ -35,7 +35,7 @@ Communication::Packet::Packet(const char* src) {
 };
 
 // Destructor.
-Communication::Packet::~Packet() {
+InFlightCommunication::Packet::~Packet() {
 	delete[] this->data;  //Deletes dynamically allocated memory
 	this->data = nullptr;
 
@@ -44,7 +44,7 @@ Communication::Packet::~Packet() {
 };
 
 // Copy Constructor - Deep Copy.
-Communication::Packet::Packet(const Packet& pkt) {
+InFlightCommunication::Packet::Packet(const Packet& pkt) {
 	this->pktHead = pkt.pktHead;
 	this->CRC = pkt.CRC;
 	this->data = nullptr;
@@ -59,7 +59,7 @@ Communication::Packet::Packet(const Packet& pkt) {
 
 
 // Copy Assignment.
-Communication::Packet& Communication::Packet::operator=(const Packet& pkt) {
+InFlightCommunication::Packet& InFlightCommunication::Packet::operator=(const Packet& pkt) {
 	if (this != &pkt) {
 		delete[] this->data;  //Deletes dynamically allocated memory
 		this->data = nullptr;
@@ -80,7 +80,7 @@ Communication::Packet& Communication::Packet::operator=(const Packet& pkt) {
 	return *this;
 };
 
-void Communication::Packet::SetData(const char* srcData, unsigned int size) {
+void InFlightCommunication::Packet::SetData(const char* srcData, unsigned int size) {
 	if ((srcData != nullptr) && (size > 0U)) {
 		delete[] this->data;  //Deletes dynamically allocated memory
 		this->data = nullptr;
@@ -95,7 +95,7 @@ void Communication::Packet::SetData(const char* srcData, unsigned int size) {
 	};
 };
 
-char* Communication::Packet::SerializeData(unsigned int& totalSize) {
+char* InFlightCommunication::Packet::SerializeData(unsigned int& totalSize) {
 	totalSize = sizeof(PacketHeader) + this->pktHead.Length + sizeof(this->CRC);
 
 	delete[] this->txBuffer;  //Deletes dynamically allocated memory
@@ -116,7 +116,7 @@ char* Communication::Packet::SerializeData(unsigned int& totalSize) {
 	return this->txBuffer;
 };
 
-void Communication::Packet::DeserializeData(const char* rxBuffer) {
+void InFlightCommunication::Packet::DeserializeData(const char* rxBuffer) {
 	if (rxBuffer != nullptr) {
 		delete[] this->data;  //Deletes dynamically allocated memory
 		this->data = nullptr;
@@ -134,19 +134,19 @@ void Communication::Packet::DeserializeData(const char* rxBuffer) {
 	};
 };
 
-void Communication::Packet::SetFlightID(unsigned int value) {
+void InFlightCommunication::Packet::SetFlightID(unsigned int value) {
 	this->pktHead.FlightID = value;
 };
 
-void Communication::Packet::SetMessageType(unsigned int value) {
+void InFlightCommunication::Packet::SetMessageType(unsigned int value) {
 	this->pktHead.MessageType = value;
 };
 
-void Communication::Packet::SetTimeStamp(uint32_t value) {
+void InFlightCommunication::Packet::SetTimeStamp(uint32_t value) {
 	this->pktHead.TimeStamp = value;
 };
 
-void Communication::Packet::DisplayInFlightSide(std::ostream& os) {
+void InFlightCommunication::Packet::DisplayInFlightSide(std::ostream& os) {
 	os << std::dec;
 
 	os << "Ground Control | ";
@@ -156,7 +156,7 @@ void Communication::Packet::DisplayInFlightSide(std::ostream& os) {
 	os << std::endl;
 };
 
-void Communication::Packet::DisplayGroundControlSide(std::ostream& os) {
+void InFlightCommunication::Packet::DisplayGroundControlSide(std::ostream& os) {
 	os << std::dec;
 
 	os << this->pktHead.FlightID << " | "; 
@@ -166,7 +166,7 @@ void Communication::Packet::DisplayGroundControlSide(std::ostream& os) {
 	os << std::endl;
 };
 
-uint32_t Communication::Packet::CalculateCRC() const {
+uint32_t InFlightCommunication::Packet::CalculateCRC() const {
 	// Contiguous buffer of Header + Body.
 	char* tempBuffer = new char[sizeof(PacketHeader) + this->pktHead.Length];  //Memory allocation size is derived from validated packet header fields, ensuring deterministic limits.
 
@@ -176,7 +176,7 @@ uint32_t Communication::Packet::CalculateCRC() const {
 
 	(void)std::memcpy(tempBuffer + sizeof(PacketHeader), this->data, this->pktHead.Length); //-V2563
 
-	uint32_t crc = Checksum::CRC32::Calculate(tempBuffer, (sizeof(PacketHeader) + this->pktHead.Length));
+	uint32_t crc = InFlightChecksum::CRC32::Calculate(tempBuffer, (sizeof(PacketHeader) + this->pktHead.Length));
 
 	delete[] tempBuffer; //Deletes dynamically allocated memory
 	tempBuffer = nullptr;
@@ -184,10 +184,10 @@ uint32_t Communication::Packet::CalculateCRC() const {
 	return crc;
 };
 
-const char* Communication::Packet::GetData() {
+const char* InFlightCommunication::Packet::GetData() {
 	return this->data;
 };
 
-unsigned int Communication::Packet::GetBodyLength() {
+unsigned int InFlightCommunication::Packet::GetBodyLength() {
 	return this->pktHead.Length;
 };
