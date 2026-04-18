@@ -13,33 +13,33 @@ namespace GroundControl_Tests {
 public:
 
     // ChallengePacket must be exactly 12 bytes (3 × uint32_t packed)
-    TEST_METHOD(ChallengePacket_IsTwelveBytes)
+    TEST_METHOD(GC_VerifyPkt_TEST_01_ChallengePacket_IsTwelveBytes)
     {
         Assert::AreEqual(static_cast<size_t>(12u), sizeof(VerificationPacket::ChallengePacket));
     }
 
     // ResponsePacket must be exactly 12 bytes (3 × uint32_t packed)
-    TEST_METHOD(ResponsePacket_IsTwelveBytes)
+    TEST_METHOD(GC_VerifyPkt_TEST_02_ResponsePacket_IsTwelveBytes)
     {
         Assert::AreEqual(static_cast<size_t>(12u), sizeof(VerificationPacket::ResponsePacket));
     }
 
     // CHALLENGE enum value
-    TEST_METHOD(ChallengePacketType_CorrectValue)
+    TEST_METHOD(GC_VerifyPkt_TEST_03_ChallengePacketType_CorrectValue)
     {
         Assert::AreEqual(static_cast<uint32_t>(1u),
             static_cast<uint32_t>(VerificationPacket::VerificationPacketType::CHALLENGE));
     }
 
     // RESPONSE enum value
-    TEST_METHOD(ResponsePacketType_CorrectValue)
+    TEST_METHOD(GC_VerifyPkt_TEST_04_ResponsePacketType_CorrectValue)
     {
         Assert::AreEqual(static_cast<uint32_t>(2u),
             static_cast<uint32_t>(VerificationPacket::VerificationPacketType::RESPONSE));
     }
 
     // ChallengePacket fields are at expected offsets (Type at 0, Random at 4, CRC32 at 8)
-    TEST_METHOD(ChallengePacket_FieldOffsets_AreCorrect)
+    TEST_METHOD(GC_VerifyPkt_TEST_05_ChallengePacket_FieldOffsets_AreCorrect)
     {
         VerificationPacket::ChallengePacket pkt{};
         pkt.Type = 0xAABBCCDDU;
@@ -59,7 +59,7 @@ public:
     }
 
     // ResponsePacket fields are at expected offsets
-    TEST_METHOD(ResponsePacket_FieldOffsets_AreCorrect)
+    TEST_METHOD(GC_VerifyPkt_TEST_06_ResponsePacket_FieldOffsets_AreCorrect)
     {
         VerificationPacket::ResponsePacket pkt{};
         pkt.Type = 0x00000002U;
@@ -83,7 +83,7 @@ public:
     TEST_CLASS(ChallengePacketCRCConsistencyTests)
     {
     public:
-        TEST_METHOD(ChallengeCRC_ComputedTwice_Matches)
+        TEST_METHOD(GC_VerifyPkt_TEST_07_ChallengeCRC_ComputedTwice_Matches)
         {
             VerificationPacket::ChallengePacket pkt{};
             pkt.Type = static_cast<uint32_t>(VerificationPacket::VerificationPacketType::CHALLENGE);
@@ -100,7 +100,7 @@ public:
             Assert::AreEqual(crc1, crc2);
         }
 
-        TEST_METHOD(ResponseCRC_ChangesWhenSignatureChanges)
+        TEST_METHOD(GC_VerifyPkt_TEST_08_ResponseCRC_ChangesWhenSignatureChanges)
         {
             VerificationPacket::ResponsePacket pkt1{};
             pkt1.Type = static_cast<uint32_t>(VerificationPacket::VerificationPacketType::RESPONSE);

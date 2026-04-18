@@ -31,7 +31,7 @@ namespace GroundControl_Tests
     public:
 
         // Standard well-formed config
-        TEST_METHOD(LoadSecret_ValidConfig_ReturnsSecret)
+        TEST_METHOD(GC_Handshake_TEST01_LoadSecret_ValidConfig_ReturnsSecret)
         {
             std::string path = WriteTempConfig("SECRET=mysecretkey\n");
             std::string secret = MutualVerification::Handshake::LoadSecret(path);
@@ -39,7 +39,7 @@ namespace GroundControl_Tests
         }
 
         // Config with comment lines before the secret
-        TEST_METHOD(LoadSecret_CommentLines_SkipsThemAndFindsSecret)
+        TEST_METHOD(GC_Handshake_TEST02_LoadSecret_CommentLines_SkipsThemAndFindsSecret)
         {
             std::string path = WriteTempConfig("# This is a comment\nSECRET=abc123\n");
             std::string secret = MutualVerification::Handshake::LoadSecret(path);
@@ -47,7 +47,7 @@ namespace GroundControl_Tests
         }
 
         // Config with blank lines before the secret
-        TEST_METHOD(LoadSecret_BlankLinesBeforeSecret_StillFindsSecret)
+        TEST_METHOD(GC_Handshake_TEST03_LoadSecret_BlankLinesBeforeSecret_StillFindsSecret)
         {
             std::string path = WriteTempConfig("\n\nSECRET=blanktest\n");
             std::string secret = MutualVerification::Handshake::LoadSecret(path);
@@ -55,7 +55,7 @@ namespace GroundControl_Tests
         }
 
         // Secret appears after other key-value pairs
-        TEST_METHOD(LoadSecret_OtherKeysPresent_FindsCorrectKey)
+        TEST_METHOD(GC_Handshake_TEST04_LoadSecret_OtherKeysPresent_FindsCorrectKey)
         {
             std::string path = WriteTempConfig("HOST=localhost\nPORT=54000\nSECRET=rightkey\n");
             std::string secret = MutualVerification::Handshake::LoadSecret(path);
@@ -63,7 +63,7 @@ namespace GroundControl_Tests
         }
 
         // No SECRET key present → should return empty string
-        TEST_METHOD(LoadSecret_MissingKey_ReturnsEmpty)
+        TEST_METHOD(GC_Handshake_TEST05_LoadSecret_MissingKey_ReturnsEmpty)
         {
             std::string path = WriteTempConfig("HOST=localhost\nPORT=54000\n");
             std::string secret = MutualVerification::Handshake::LoadSecret(path);
@@ -71,14 +71,14 @@ namespace GroundControl_Tests
         }
 
         // File does not exist → should return empty string (not crash)
-        TEST_METHOD(LoadSecret_NonexistentFile_ReturnsEmpty)
+        TEST_METHOD(GC_Handshake_TEST06_LoadSecret_NonexistentFile_ReturnsEmpty)
         {
             std::string secret = MutualVerification::Handshake::LoadSecret("does_not_exist_xyz.txt");
             Assert::IsTrue(secret.empty());
         }
 
         // Empty file → should return empty string
-        TEST_METHOD(LoadSecret_EmptyFile_ReturnsEmpty)
+        TEST_METHOD(GC_Handshake_TEST07_LoadSecret_EmptyFile_ReturnsEmpty)
         {
             std::string path = WriteTempConfig("");
             std::string secret = MutualVerification::Handshake::LoadSecret(path);
@@ -86,7 +86,7 @@ namespace GroundControl_Tests
         }
 
         // SECRET key with empty value (SECRET=)
-        TEST_METHOD(LoadSecret_EmptyValue_ReturnsEmptyString)
+        TEST_METHOD(GC_Handshake_TEST08_LoadSecret_EmptyValue_ReturnsEmptyString)
         {
             std::string path = WriteTempConfig("SECRET=\n");
             std::string secret = MutualVerification::Handshake::LoadSecret(path);
@@ -94,7 +94,7 @@ namespace GroundControl_Tests
         }
 
         // Partial key that starts with SECRET but isn't SECRET (e.g. SECRETKEY=x)
-        TEST_METHOD(LoadSecret_PartialKeyMatch_DoesNotMatch)
+        TEST_METHOD(GC_Handshake_TEST09_LoadSecret_PartialKeyMatch_DoesNotMatch)
         {
             std::string path = WriteTempConfig("SECRETKEY=shouldnotmatch\n");
             std::string secret = MutualVerification::Handshake::LoadSecret(path);
@@ -103,7 +103,7 @@ namespace GroundControl_Tests
         }
 
         // Only takes the FIRST occurrence of SECRET
-        TEST_METHOD(LoadSecret_DuplicateKeys_ReturnsFirst)
+        TEST_METHOD(GC_Handshake_TEST10_LoadSecret_DuplicateKeys_ReturnsFirst)
         {
             std::string path = WriteTempConfig("SECRET=first\nSECRET=second\n");
             std::string secret = MutualVerification::Handshake::LoadSecret(path);
