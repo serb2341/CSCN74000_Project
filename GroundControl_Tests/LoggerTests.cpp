@@ -30,7 +30,7 @@ public:
 
 
     // After constructing a Logger, the file should exist on disk
-        TEST_METHOD(Constructor_CreatesFile)
+    TEST_METHOD(GC_Logger_TEST01_Constructor_CreatesFile)
     {
         CleanupLogFile();
         {
@@ -43,7 +43,7 @@ public:
     }
 
     // Log writes content that contains the message string
-    TEST_METHOD(Log_WritesMessageToFile)
+    TEST_METHOD(GC_Logger_TEST02_Log_WritesMessageToFile)
     {
         CleanupLogFile();
         {
@@ -61,7 +61,7 @@ public:
     }
 
     // Log entry contains SRC and DEST values
-    TEST_METHOD(Log_ContainsSrcAndDest)
+    TEST_METHOD(GC_Logger_TEST03_Log_ContainsSrcAndDest)
     {
         CleanupLogFile();
         {
@@ -76,7 +76,7 @@ public:
     }
 
     // Log entry contains the FlightID from the header
-    TEST_METHOD(Log_ContainsFlightID)
+    TEST_METHOD(GC_Logger_TEST04_Log_ContainsFlightID)
     {
         CleanupLogFile();
         {
@@ -91,7 +91,7 @@ public:
     }
 
     // Multiple Log calls should append (all messages present in file)
-    TEST_METHOD(Log_MultipleCalls_AllMessagesPresent)
+    TEST_METHOD(GC_Logger_TEST05_Log_MultipleCalls_AllMessagesPresent)
     {
         CleanupLogFile();
         {
@@ -109,7 +109,7 @@ public:
     }
 
     // Destructor should close the file (subsequent Logger opens in append mode)
-    TEST_METHOD(AppendMode_SecondLoggerAppendsNotOverwrites)
+    TEST_METHOD(GC_Logger_TEST06_AppendMode_SecondLoggerAppendsNotOverwrites)
     {
         CleanupLogFile();
         {
@@ -129,7 +129,7 @@ public:
     }
 
     // Log with empty message string should not crash
-    TEST_METHOD(Log_EmptyMessage_DoesNotCrash)
+    TEST_METHOD(GC_Logger_TEST07_Log_EmptyMessage_DoesNotCrash)
     {
         CleanupLogFile();
         {
@@ -143,7 +143,7 @@ public:
     }
 
     // Log header fields (MessageType, Length, TimeStamp) appear in output
-    TEST_METHOD(Log_ContainsHeaderFields)
+    TEST_METHOD(GC_Logger_TEST08_Log_ContainsHeaderFields)
     {
         CleanupLogFile();
         {

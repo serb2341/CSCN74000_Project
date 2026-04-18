@@ -21,7 +21,7 @@ namespace GroundControl_Tests
     public:
 
         // Empty buffer → well-known CRC-32 value for zero bytes (0x00000000 with final XOR)
-        TEST_METHOD(EmptyBuffer_ReturnsZero)
+        TEST_METHOD(GC_CRC_TEST01_EmptyBuffer_ReturnsZero)
         {
             uint32_t result = Checksum::CRC32::Calculate("", 0u);
             // CRC-32 of empty input is 0x00000000
@@ -29,14 +29,14 @@ namespace GroundControl_Tests
         }
 
         // Single known byte: CRC-32("A") = 0xD3D99E8B
-        TEST_METHOD(SingleByte_KnownValue)
+        TEST_METHOD(GC_CRC_TEST02_SingleByte_KnownValue)
         {
             uint32_t result = Checksum::CRC32::Calculate("A", 1u);
             Assert::AreEqual(static_cast<uint32_t>(0xD3D99E8BU), result);
         }
 
         // Classic test vector: CRC-32("123456789") = 0xCBF43926
-        TEST_METHOD(KnownString_StandardTestVector)
+        TEST_METHOD(GC_CRC_TEST03_KnownString_StandardTestVector)
         {
             const char* data = "123456789";
             uint32_t result = Checksum::CRC32::Calculate(data, 9u);
@@ -44,7 +44,7 @@ namespace GroundControl_Tests
         }
 
         // Two calls with identical input must return identical results (determinism)
-        TEST_METHOD(SameInput_AlwaysReturnsSameResult)
+        TEST_METHOD(GC_CRC_TEST04_SameInput_AlwaysReturnsSameResult)
         {
             const char* data = "hello world";
             uint32_t r1 = Checksum::CRC32::Calculate(data, 11u);
@@ -53,7 +53,7 @@ namespace GroundControl_Tests
         }
 
         // Different input must (almost certainly) produce different CRC
-        TEST_METHOD(DifferentInputs_ProduceDifferentResults)
+        TEST_METHOD(GC_CRC_TEST05_DifferentInputs_ProduceDifferentResults)
         {
             uint32_t r1 = Checksum::CRC32::Calculate("abc", 3u);
             uint32_t r2 = Checksum::CRC32::Calculate("abd", 3u);
@@ -61,7 +61,7 @@ namespace GroundControl_Tests
         }
 
         // Length 1 vs length 2 of same buffer must differ
-        TEST_METHOD(DifferentLengths_ProduceDifferentResults)
+        TEST_METHOD(GC_CRC_TEST06_DifferentLengths_ProduceDifferentResults)
         {
             uint32_t r1 = Checksum::CRC32::Calculate("AB", 1u);
             uint32_t r2 = Checksum::CRC32::Calculate("AB", 2u);
@@ -69,7 +69,7 @@ namespace GroundControl_Tests
         }
 
         // Changing a single byte must change the CRC
-        TEST_METHOD(SingleBitFlip_ChangesCRC)
+        TEST_METHOD(GC_CRC_TEST07_SingleBitFlip_ChangesCRC)
         {
             char buf1[4] = { 0x01, 0x02, 0x03, 0x04 };
             char buf2[4] = { 0x01, 0x02, 0x03, 0x05 }; // last byte flipped
@@ -79,7 +79,7 @@ namespace GroundControl_Tests
         }
 
         // All-zeros buffer of length 4 should not equal all-ones
-        TEST_METHOD(AllZeroVsAllFF_AreDistinct)
+        TEST_METHOD(GC_CRC_TEST08_AllZeroVsAllFF_AreDistinct)
         {
             char zeros[4] = { 0x00, 0x00, 0x00, 0x00 };
             char ones[4] = { static_cast<char>(0xFF), static_cast<char>(0xFF),
@@ -90,7 +90,7 @@ namespace GroundControl_Tests
         }
 
         // Large buffer — just confirm it does not crash and returns non-zero
-        TEST_METHOD(LargeBuffer_DoesNotCrash)
+        TEST_METHOD(GC_CRC_TEST09_LargeBuffer_DoesNotCrash)
         {
             std::vector<char> big(4096, 0x42);
             uint32_t result = Checksum::CRC32::Calculate(big.data(), static_cast<unsigned int>(big.size()));

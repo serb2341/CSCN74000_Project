@@ -7,49 +7,49 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace GroundControl_Tests {
     TEST_CLASS(PacketTests) {
-public:
+    public:
 
-    // Default-constructed packet should have zeroed header fields
-    TEST_METHOD(DefaultConstructor_ZeroedHeader)
-    {
-        Communication::Packet pkt;
-        Assert::AreEqual(0u, pkt.GetFlightID());
-        Assert::AreEqual(0u, pkt.GetBodyLength());
-    }
+        // Default-constructed packet should have zeroed header fields
+        TEST_METHOD(GC_Pkt_TEST01_DefaultConstructor_ZeroedHeader)
+        {
+            Communication::Packet pkt;
+            Assert::AreEqual(0u, pkt.GetFlightID());
+            Assert::AreEqual(0u, pkt.GetBodyLength());
+        }
 
-    // GetData on a default-constructed packet should return nullptr
-    TEST_METHOD(DefaultConstructor_NullData)
-    {
-        Communication::Packet pkt;
-        Assert::IsNull(pkt.GetData());
-    }
+        // GetData on a default-constructed packet should return nullptr
+        TEST_METHOD(GC_Pkt_TEST02_DefaultConstructor_NullData)
+        {
+            Communication::Packet pkt;
+            Assert::IsNull(pkt.GetData());
+        }
     };
 
     TEST_CLASS(PacketSetterTests)
     {
     public:
-        TEST_METHOD(SetFlightID_ReflectsInGetter)
+        TEST_METHOD(GC_Pkt_TEST03_SetFlightID_ReflectsInGetter)
         {
             Communication::Packet pkt;
             pkt.SetFlightID(42u);
             Assert::AreEqual(42u, pkt.GetFlightID());
         }
 
-        TEST_METHOD(SetMessageType_ReflectsInHeader)
+        TEST_METHOD(GC_Pkt_TEST04_SetMessageType_ReflectsInHeader)
         {
             Communication::Packet pkt;
             pkt.SetMessageType(7u);
             Assert::AreEqual(7u, pkt.GetHeader().MessageType);
         }
 
-        TEST_METHOD(SetTimeStamp_ReflectsInHeader)
+        TEST_METHOD(GC_Pkt_TEST05_SetTimeStamp_ReflectsInHeader)
         {
             Communication::Packet pkt;
             pkt.SetTimeStamp(123456u);
             Assert::AreEqual(static_cast<uint32_t>(123456u), pkt.GetHeader().TimeStamp);
         }
 
-        TEST_METHOD(SetData_UpdatesBodyLength)
+        TEST_METHOD(GC_Pkt_TEST06_SetData_UpdatesBodyLength)
         {
             Communication::Packet pkt;
             const std::string body = "Hello";
@@ -57,7 +57,7 @@ public:
             Assert::AreEqual(static_cast<unsigned int>(body.size()), pkt.GetBodyLength());
         }
 
-        TEST_METHOD(SetData_ContentMatchesInput)
+        TEST_METHOD(GC_Pkt_TEST07_SetData_ContentMatchesInput)
         {
             Communication::Packet pkt;
             const std::string body = "TestPayload";
@@ -67,7 +67,7 @@ public:
         }
 
         // Calling SetData twice should replace the old data
-        TEST_METHOD(SetData_CalledTwice_UsesLatestData)
+        TEST_METHOD(GC_Pkt_TEST08_SetData_CalledTwice_UsesLatestData)
         {
             Communication::Packet pkt;
             pkt.SetData("first", 5u);
@@ -78,7 +78,7 @@ public:
         }
 
         // SetData with nullptr should not crash or alter state
-        TEST_METHOD(SetData_NullptrInput_NoChange)
+        TEST_METHOD(GC_Pkt_TEST09_SetData_NullptrInput_NoChange)
         {
             Communication::Packet pkt;
             pkt.SetData("init", 4u);
@@ -87,7 +87,7 @@ public:
         }
 
         // SetData with size 0 should not crash
-        TEST_METHOD(SetData_ZeroSize_NoChange)
+        TEST_METHOD(GC_Pkt_TEST10_SetData_ZeroSize_NoChange)
         {
             Communication::Packet pkt;
             pkt.SetData("init", 4u);
@@ -100,7 +100,7 @@ public:
     {
     public:
         // Serialized size = header + body + CRC(4 bytes)
-        TEST_METHOD(SerializeData_CorrectTotalSize)
+        TEST_METHOD(GC_Pkt_TEST11_SerializeData_CorrectTotalSize)
         {
             Communication::Packet pkt;
             pkt.SetFlightID(1u);
@@ -114,7 +114,7 @@ public:
         }
 
         // Serialized buffer should not be null
-        TEST_METHOD(SerializeData_ReturnsNonNullBuffer)
+        TEST_METHOD(GC_Pkt_TEST12_SerializeData_ReturnsNonNullBuffer)
         {
             Communication::Packet pkt;
             pkt.SetData("data", 4u);
@@ -124,7 +124,7 @@ public:
         }
 
         // Round-trip: serialize then deserialize must preserve FlightID and body
-        TEST_METHOD(SerializeDeserialize_RoundTrip_PreservesFlightID)
+        TEST_METHOD(GC_Pkt_TEST13_SerializeDeserialize_RoundTrip_PreservesFlightID)
         {
             Communication::Packet original;
             original.SetFlightID(99u);
@@ -138,7 +138,7 @@ public:
             Assert::AreEqual(99u, restored.GetFlightID());
         }
 
-        TEST_METHOD(SerializeDeserialize_RoundTrip_PreservesBody)
+        TEST_METHOD(GC_Pkt_TEST14_SerializeDeserialize_RoundTrip_PreservesBody)
         {
             Communication::Packet original;
             original.SetFlightID(5u);
@@ -152,7 +152,7 @@ public:
             Assert::AreEqual(std::string("PayloadData"), body);
         }
 
-        TEST_METHOD(SerializeDeserialize_RoundTrip_PreservesMessageType)
+        TEST_METHOD(GC_Pkt_TEST15_SerializeDeserialize_RoundTrip_PreservesMessageType)
         {
             Communication::Packet original;
             original.SetMessageType(3u);
@@ -166,7 +166,7 @@ public:
         }
 
         // Deserialize via DeserializeData method
-        TEST_METHOD(DeserializeData_SameAsConstructorFromBuffer)
+        TEST_METHOD(GC_Pkt_TEST16_DeserializeData_SameAsConstructorFromBuffer)
         {
             Communication::Packet original;
             original.SetFlightID(77u);
@@ -188,7 +188,7 @@ public:
     {
     public:
         // Copy constructor should deep copy the body
-        TEST_METHOD(CopyConstructor_DeepCopiesBody)
+        TEST_METHOD(GC_Pkt_TEST17_CopyConstructor_DeepCopiesBody)
         {
             Communication::Packet original;
             original.SetFlightID(10u);
@@ -201,7 +201,7 @@ public:
         }
 
         // Copy assignment should deep copy the body
-        TEST_METHOD(CopyAssignment_DeepCopiesBody)
+        TEST_METHOD(GC_Pkt_TEST18_CopyAssignment_DeepCopiesBody)
         {
             Communication::Packet original;
             original.SetFlightID(20u);
@@ -216,7 +216,7 @@ public:
         }
 
         // Modifying original after copy must not affect the copy
-        TEST_METHOD(CopyConstructor_IndependentAfterCopy)
+        TEST_METHOD(GC_Pkt_TEST19_CopyConstructor_IndependentAfterCopy)
         {
             Communication::Packet original;
             original.SetData("Original", 8u);
@@ -228,7 +228,7 @@ public:
         }
 
         // Self-assignment must be safe
-        TEST_METHOD(CopyAssignment_SelfAssignment_Safe)
+        TEST_METHOD(GC_Pkt_TEST20_CopyAssignment_SelfAssignment_Safe)
         {
             Communication::Packet pkt;
             pkt.SetFlightID(5u);
@@ -242,14 +242,14 @@ public:
     {
     public:
         // GetHeader must return a const reference with correct values
-        TEST_METHOD(GetHeader_ReturnsCorrectFlightID)
+        TEST_METHOD(GC_Pkt_TEST21_GetHeader_ReturnsCorrectFlightID)
         {
             Communication::Packet pkt;
             pkt.SetFlightID(123u);
             Assert::AreEqual(123u, pkt.GetHeader().FlightID);
         }
 
-        TEST_METHOD(GetHeader_ReturnsCorrectLength)
+        TEST_METHOD(GC_Pkt_TEST22_GetHeader_ReturnsCorrectLength)
         {
             Communication::Packet pkt;
             pkt.SetData("ABCDE", 5u);
@@ -269,13 +269,13 @@ public:
     {
     public:
         // PacketHeader must be exactly 16 bytes (4 × uint32_t/unsigned int, packed)
-        TEST_METHOD(PacketHeader_IsSixteenBytes)
+        TEST_METHOD(GC_Pkt_TEST23_PacketHeader_IsSixteenBytes)
         {
             Assert::AreEqual(static_cast<size_t>(16u), sizeof(Communication::PacketHeader));
         }
 
         // Fields must be at the correct offsets within the packed struct
-        TEST_METHOD(PacketHeader_FieldOffsets_AreCorrect)
+        TEST_METHOD(GC_Pkt_TEST24_PacketHeader_FieldOffsets_AreCorrect)
         {
             Communication::PacketHeader hdr{};
             hdr.FlightID = 0x11111111U;
