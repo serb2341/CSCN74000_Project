@@ -12,12 +12,14 @@
 #include "CppUnitTest.h"
 
 #include "../Server/Server.h"
+
 #include "../GroundControlClient/Packet.h"
 #include "../Server/CRC32.h"
 #include "../Server/VerificationPacket.h"
 #include "../GroundControlClient/GroundControlClient.h"
 #include "../InFlightClient/InFlightClient.h"
 #include "../GroundControlClient/Handshake.h"
+
 
 #include <thread>
 #include <atomic>
@@ -86,12 +88,14 @@ TEST_CLASS(Test_Handshake_Integration)
             return INVALID_SOCKET;
         }
 
+
         (void)listen(s, 2);
         return s;
     }
 
     static SOCKET MakeClientSocket(unsigned short port = PORT_HANDSHAKE)
     {
+
         SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (s == INVALID_SOCKET) return INVALID_SOCKET;
 
@@ -104,6 +108,7 @@ TEST_CLASS(Test_Handshake_Integration)
         {
             (void)closesocket(s);
             return INVALID_SOCKET;
+
         }
         return s;
     }
@@ -112,6 +117,7 @@ public:
 
     TEST_CLASS_INITIALIZE(ClassSetup)
     {
+
         WSADATA w;
         (void)WSAStartup(MAKEWORD(2, 2), &w);
         srand(42);
@@ -119,6 +125,7 @@ public:
 
     TEST_CLASS_CLEANUP(ClassTeardown)
     {
+
         (void)WSACleanup();
     }
 
@@ -129,6 +136,7 @@ public:
     TEST_METHOD(Test1_CorrectSecret_HandshakeSucceeds)
     {
         SOCKET listenSock = MakeListenSocket();
+
         Assert::IsTrue(listenSock != INVALID_SOCKET,
             L"Test 1: Listening socket creation must succeed");
 
@@ -145,6 +153,7 @@ public:
                     serverResult = server.PerformHandshake(conn, "InFlightClient");
                     (void)closesocket(conn);
                 }
+
             });
 
         WaitForThread();

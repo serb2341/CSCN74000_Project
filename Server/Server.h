@@ -31,7 +31,7 @@ class Test_HandshakeThenData_Integration;
 
 namespace Networking {
 	// ============================================================
-//  Server-wide state — sequential lifecycle, one at a time.
+//  Server-wide state â€” sequential lifecycle, one at a time.
 // ============================================================
 
 

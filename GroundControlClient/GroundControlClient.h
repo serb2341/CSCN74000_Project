@@ -21,6 +21,7 @@
 
 
 namespace GroundControlClient {
+
     class GroundControlClient {
         friend class Test_Handshake_Integration;
         friend class Test_PacketRelay_Integration;
