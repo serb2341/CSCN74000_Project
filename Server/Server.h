@@ -25,6 +25,8 @@ namespace Networking {
 	// ============================================================
 //  Server-wide state — sequential lifecycle, one at a time.
 // ============================================================
+
+
 	enum class ServerState
 	{
 		INITIALIZING,	// Default startup state.
@@ -45,6 +47,16 @@ namespace Networking {
 	};
 
 	class Server {
+
+	// Required for using private methods in integration tests.
+	friend class Test_Handshake_Integration;
+	friend class Test_PacketRelay_Integration;
+	friend class Test_BidirectionalExchange_Integration;
+	friend class Test_TelemetryPath_Integration;
+	friend class Test_Disconnection_Integration;
+	friend class Test_FlightID_Integration;
+	friend class Test_HandshakeThenData_Integration;
+
 	private:
 		SOCKET listeningSocket;
 		SOCKET groundControlSocket;

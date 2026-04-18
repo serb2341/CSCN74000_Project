@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GroundControl_Tests", "Grou
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ServerSystemTests", "ServerSystemTests\ServerSystemTests.vcxproj", "{BAD166B4-2326-4273-1812-9D0DFA5E26AC}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IntegrationTests", "IntegrationTests\IntegrationTests.vcxproj", "{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -110,6 +112,18 @@ Global
 		{BAD166B4-2326-4273-1812-9D0DFA5E26AC}.Release|x64.Build.0 = Release|x64
 		{BAD166B4-2326-4273-1812-9D0DFA5E26AC}.Release|x86.ActiveCfg = Release|Win32
 		{BAD166B4-2326-4273-1812-9D0DFA5E26AC}.Release|x86.Build.0 = Release|Win32
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Debug|Any CPU.Build.0 = Debug|x64
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Debug|x64.ActiveCfg = Debug|x64
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Debug|x64.Build.0 = Debug|x64
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Debug|x86.ActiveCfg = Debug|Win32
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Debug|x86.Build.0 = Debug|Win32
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Release|Any CPU.ActiveCfg = Release|x64
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Release|Any CPU.Build.0 = Release|x64
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Release|x64.ActiveCfg = Release|x64
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Release|x64.Build.0 = Release|x64
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Release|x86.ActiveCfg = Release|Win32
+		{0390735A-97EC-4C51-AB22-7DCAD3B0D1FC}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
